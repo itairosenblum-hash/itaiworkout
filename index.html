@@ -100,7 +100,7 @@
   .btn-danger{background:transparent; color:var(--danger); border-color:rgba(230,85,91,.4);}
   .btn-ghost{background:transparent; border-color:var(--border); color:var(--text-dim);}
   .btn-block{width:100%;}
-  .btn-lg{padding:18px 20px; font-size:17px; border-radius:var(--radius);}
+  .btn-lg{padding:15px 20px; font-size:16px; border-radius:var(--radius);}
   .btn-row{display:flex; gap:10px;}
   .btn-row .btn{flex:1;}
   .btn[disabled]{opacity:.4; pointer-events:none;}
@@ -207,29 +207,29 @@
   }
 
   /* ---------- session ---------- */
-  .session-head{margin-bottom:16px;}
+  .session-head{margin-bottom:10px;}
   .session-head .plan-name{font-size:13px; color:var(--text-dim); font-weight:700;}
   .session-head .progress-text{font-size:15px; font-weight:800; margin-top:2px;}
-  .segments{display:flex; gap:4px; margin-top:10px;}
-  .segments .seg{flex:1; height:5px; border-radius:3px; background:var(--surface-2);}
+  .segments{display:flex; gap:4px; margin-top:8px;}
+  .segments .seg{flex:1; height:4px; border-radius:3px; background:var(--surface-2);}
   .segments .seg.done{background:var(--accent-rest);}
   .segments .seg.current{background:var(--accent);}
 
   .session-main{
     flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; gap:14px; padding:10px 0;
+    text-align:center; gap:8px; padding:4px 0;
   }
 
-  .session-visual-row{display:flex; gap:12px; align-items:center; justify-content:center; width:100%;}
+  .session-visual-row{display:flex; gap:10px; align-items:center; justify-content:center; width:100%;}
 
   .ex-image-wrap{
     position:relative; flex:1 1 auto;
-    width:100%; max-width:200px; aspect-ratio:4/3;
+    width:100%; max-width:170px; aspect-ratio:16/10;
     border-radius:var(--radius); overflow:hidden;
     background:var(--surface); border:1px solid var(--border);
     display:flex; align-items:center; justify-content:center;
   }
-  .ex-image-wrap img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; transition:opacity .6s ease-in-out; transform-origin:center center;}
+  .ex-image-wrap img{position:absolute; top:0; right:0; bottom:0; left:0; width:100%; height:100%; object-fit:cover; display:block; transition:opacity .6s ease-in-out; transform-origin:center center;}
   .ex-image-wrap img.frame-a{animation:gifFrameA 3.6s ease-in-out infinite, gifZoomA 7.2s ease-in-out infinite;}
   .ex-image-wrap img.frame-b{animation:gifFrameB 3.6s ease-in-out infinite, gifZoomB 7.2s ease-in-out infinite; opacity:0;}
   @keyframes gifFrameA{0%,40%{opacity:1;} 50%,90%{opacity:0;} 100%{opacity:1;}}
@@ -245,77 +245,79 @@
   .ex-image-fallback svg{width:34px; height:34px;}
   .ex-image-fallback span{font-size:12px;}
 
-  .muscle-map-wrap{display:flex; gap:8px; align-items:flex-end; flex:0 0 auto;}
-  .muscle-map-item{display:flex; flex-direction:column; align-items:center; gap:3px;}
-  .muscle-map-item span{font-size:10px; color:var(--text-dim); font-weight:700;}
-  .muscle-svg{width:40px; height:80px;}
+  .muscle-map-wrap{display:flex; gap:6px; align-items:flex-end; flex:0 0 auto;}
+  .muscle-map-item{display:flex; flex-direction:column; align-items:center; gap:2px;}
+  .muscle-map-item span{font-size:9px; color:var(--text-dim); font-weight:700;}
+  .muscle-svg{width:32px; height:64px;}
   .muscle-svg .region-head{fill:var(--surface-2); stroke:var(--border); stroke-width:1;}
   .muscle-svg .region-default{fill:var(--surface-2); stroke:var(--border); stroke-width:1;}
   .muscle-svg .region-primary{fill:var(--accent); stroke:var(--border); stroke-width:1;}
   .muscle-svg .region-secondary{fill:var(--accent); fill-opacity:.35; stroke:var(--border); stroke-width:1;}
 
-  .tip-text{font-size:13px; color:var(--text-dim); line-height:1.6; margin-top:8px; max-width:300px;}
+  .tip-text{font-size:12px; color:var(--text-dim); line-height:1.5; margin-top:4px; max-width:300px;}
   .tip-text b{color:var(--text); font-weight:700;}
 
-  .weight-block{margin-top:10px;}
+  .ex-meta-row{display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; width:100%;}
+  .weight-block{margin:0;}
   .weight-chip{
-    display:inline-flex; align-items:center; gap:14px;
+    display:inline-flex; align-items:center; gap:10px;
     background:var(--surface-2); border:1px solid var(--border); border-radius:999px;
-    padding:6px 8px;
+    padding:3px 6px;
   }
   .weight-btn{
-    width:32px; height:32px; border-radius:50%; flex:none;
+    width:26px; height:26px; border-radius:50%; flex:none;
     border:1px solid var(--border); background:var(--surface);
-    color:var(--text); font-size:18px; font-weight:800; font-family:inherit;
+    color:var(--text); font-size:16px; font-weight:800; font-family:inherit;
     display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1;
   }
   .weight-btn:active{transform:scale(.92); background:var(--accent); color:#1a1208; border-color:var(--accent);}
-  .weight-value{font-family:'Roboto Mono',monospace; font-size:16px; font-weight:700; min-width:74px; text-align:center;}
-  .weight-last{font-size:12px; color:var(--text-dim); margin-top:6px;}
+  .weight-value{font-family:'Roboto Mono',monospace; font-size:14px; font-weight:700; min-width:62px; text-align:center;}
+  .weight-last{font-size:11px; color:var(--text-dim); margin-top:2px;}
 
-  .ex-title{font-size:24px; font-weight:800; margin:4px 0 0;}
-  .ex-subtitle{font-size:15px; color:var(--text-dim); font-weight:600;}
+  .ex-title{font-size:20px; font-weight:800; margin:0;}
+  .ex-subtitle{font-size:14px; color:var(--text-dim); font-weight:600;}
   .ex-subtitle b{color:var(--text); font-family:'Roboto Mono',monospace;}
 
   .yt-link{
-    display:inline-flex; align-items:center; gap:6px; margin-top:10px;
-    font-size:13px; font-weight:700; color:var(--accent-rest-ex);
-    text-decoration:none; padding:6px 0;
+    display:inline-flex; align-items:center; gap:5px; margin-top:4px;
+    font-size:12px; font-weight:700; color:var(--accent-rest-ex);
+    text-decoration:none; padding:4px 0;
   }
-  .yt-link svg{width:16px; height:16px; flex:none;}
+  .yt-link svg{width:14px; height:14px; flex:none;}
   .yt-link:active{opacity:.7;}
 
   .next-up{font-size:13px; color:var(--text-dim);}
   .next-up b{color:var(--text);}
 
-  .ring-wrap{position:relative; width:240px; height:240px; margin:6px 0;}
+  .ring-wrap{position:relative; width:208px; height:208px; margin:4px 0;}
   .ring-wrap svg{width:100%; height:100%; transform:rotate(-90deg);}
   .ring-track{fill:none; stroke:var(--surface-2); stroke-width:10;}
   .ring-progress{fill:none; stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset 1s linear, stroke .3s ease;}
   .ring-tick{stroke:var(--border); stroke-width:2;}
   .ring-center{
-    position:absolute; inset:0; display:flex; flex-direction:column;
+    position:absolute; top:0; right:0; bottom:0; left:0; display:flex; flex-direction:column;
     align-items:center; justify-content:center; gap:4px;
   }
-  .ring-time{font-size:46px; font-weight:700; font-family:'Roboto Mono',monospace; letter-spacing:.02em;}
+  .ring-time{font-size:40px; font-weight:700; font-family:'Roboto Mono',monospace; letter-spacing:.02em;}
   .ring-phase{font-size:13px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;}
   .ring-phase.rest{color:var(--accent-rest);}
   .ring-phase.rest-ex{color:var(--accent-rest-ex);}
   .ring-phase.active{color:var(--accent);}
 
   .session-actions{
-    position:sticky; bottom:0; padding-top:14px; margin-top:auto;
+    position:sticky; bottom:0; padding-top:8px; margin-top:auto;
     background:linear-gradient(to top, var(--bg) 60%, transparent);
   }
-  .rest-adjust{display:flex; gap:10px; margin-bottom:10px;}
+  .rest-adjust{display:flex; gap:10px; margin-bottom:8px;}
   .rest-adjust .btn{flex:1;}
 
-  .wake-badge{
-    display:flex; align-items:center; gap:6px; justify-content:center;
-    font-size:11px; color:var(--text-dim); margin-top:10px;
+  .wake-indicator{
+    width:42px; height:42px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-dim);
   }
-  .wake-badge svg{width:13px; height:13px;}
-  .wake-badge.on{color:var(--accent-rest);}
+  .wake-indicator svg{width:18px; height:18px;}
+  .wake-indicator.on{color:var(--accent-rest);}
 
   /* ---------- done ---------- */
   .done-screen{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:16px;}
@@ -329,7 +331,7 @@
 
   /* ---------- modal ---------- */
   .modal-overlay{
-    position:fixed; inset:0; background:rgba(10,12,14,.6);
+    position:fixed; top:0; right:0; bottom:0; left:0; background:rgba(10,12,14,.6);
     display:flex; align-items:center; justify-content:center; padding:20px; z-index:50;
     animation:fadeIn .15s ease;
   }
@@ -774,12 +776,12 @@ function renderMuscleMap(ex){
   </div>`;
 }
 const PATTERN_TIPS = {
-  squat: 'שמרו על גב ישר וברכיים בכיוון הבהונות, ירדו בשליטה.',
-  hinge: 'התנועה מתחילה מהירכיים לאחור, גב ישר והמשקל קרוב לגוף.',
-  push: 'נשפו במהלך הדחיפה, שאפו בחזרה, שלטו בקצב הירידה.',
-  pull: 'קרבו את השכמות זו לזו בסוף התנועה, הימנעו מתנופה.',
-  core: 'נשמו באופן קבוע ובצעו תנועה איטית ומבוקרת.',
-  cardio: 'שמרו על קצב נשימה קבוע ונחתו ברכות על הרגליים.'
+  squat: 'גב ישר, ברכיים בכיוון הבהונות, ירידה בשליטה.',
+  hinge: 'התנועה מהירכיים לאחור, גב ישר ומשקל קרוב לגוף.',
+  push: 'נשפו בדחיפה, שאפו בחזרה, שלטו בקצב.',
+  pull: 'קרבו שכמות בסוף התנועה, בלי תנופה.',
+  core: 'נשמו באופן קבוע, תנועה איטית ומבוקרת.',
+  cardio: 'קצב נשימה קבוע, נחיתה רכה על הרגליים.'
 };
 
 /* =========================================================
@@ -1182,22 +1184,26 @@ function renderSession(){
     </div>
     <div>
       <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
-      <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
-      ${renderWeightChip(ex, s.exIndex)}
+      <div class="ex-meta-row">
+        <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
+        ${renderWeightChip(ex, s.exIndex)}
+      </div>
       ${tip ? `<div class="tip-text">💡 ${escapeHtml(tip)}</div>` : ''}
       <a class="yt-link" href="${youtubeSearchUrl(ex)}" target="_blank" rel="noopener noreferrer">${icon('play')}<span>סרטון הדגמה מלא ביוטיוב</span></a>
     </div>
     <div class="session-actions">
       <button class="btn btn-primary btn-block btn-lg" data-action="finish-set">${icon('check')}<span>סיימתי את הסט</span></button>
-      <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex" style="margin-top:10px">${icon('skip')}<span>דילוג על התרגיל</span></button>
+      <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex" style="margin-top:6px">${icon('skip')}<span>דילוג על התרגיל</span></button>
     </div>`;
   }else if(s.phase==='active' && isTimed){
     const tip = PATTERN_TIPS[getMovementPattern(ex)] || '';
     main = `
     <div>
       <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
-      <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b></div>
-      ${renderWeightChip(ex, s.exIndex)}
+      <div class="ex-meta-row">
+        <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b></div>
+        ${renderWeightChip(ex, s.exIndex)}
+      </div>
       ${tip ? `<div class="tip-text">💡 ${escapeHtml(tip)}</div>` : ''}
       <a class="yt-link" href="${youtubeSearchUrl(ex)}" target="_blank" rel="noopener noreferrer">${icon('play')}<span>סרטון הדגמה מלא ביוטיוב</span></a>
     </div>
@@ -1214,7 +1220,7 @@ function renderSession(){
         <button class="btn" data-action="adjust-rest" data-delta="15">15+</button>
       </div>
       <button class="btn btn-primary btn-block btn-lg" data-action="finish-set">${icon('check')}<span>סיימתי מוקדם</span></button>
-      <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex" style="margin-top:10px">${icon('skip')}<span>דילוג על התרגיל</span></button>
+      <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex" style="margin-top:6px">${icon('skip')}<span>דילוג על התרגיל</span></button>
     </div>`;
   }else{ // restSet / restExercise
     const isExRest = s.phase==='restExercise';
@@ -1255,14 +1261,15 @@ function renderSession(){
           <div class="plan-name">${escapeHtml(plan.name)}</div>
           <div class="progress-text">תרגיל ${s.exIndex+1} מתוך ${plan.exercises.length}</div>
         </div>
-        <div style="width:42px"></div>
+        ${wakeSupported
+          ? `<div class="wake-indicator ${wakeOn?'on':''}" title="${wakeOn?'המסך יישאר דלוק במהלך האימון':'לא ניתן לנעול את המסך במצב זה'}">${icon(wakeOn?'lock':'unlock')}</div>`
+          : `<div style="width:42px"></div>`}
       </div>
       <div class="segments">${segs}</div>
     </div>
     <div class="session-main">
       ${main}
     </div>
-    ${wakeSupported ? `<div class="wake-badge ${wakeOn?'on':''}">${icon(wakeOn?'lock':'unlock')}<span>${wakeOn?'המסך יישאר דלוק במהלך האימון':'לא ניתן לנעול את המסך במצב זה'}</span></div>` : ''}
   </div>`;
 }
 
