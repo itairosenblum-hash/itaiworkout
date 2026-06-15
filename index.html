@@ -247,6 +247,14 @@
   .ex-subtitle{font-size:15px; color:var(--text-dim); font-weight:600;}
   .ex-subtitle b{color:var(--text); font-family:'Roboto Mono',monospace;}
 
+  .yt-link{
+    display:inline-flex; align-items:center; gap:6px; margin-top:10px;
+    font-size:13px; font-weight:700; color:var(--accent-rest-ex);
+    text-decoration:none; padding:6px 0;
+  }
+  .yt-link svg{width:16px; height:16px; flex:none;}
+  .yt-link:active{opacity:.7;}
+
   .next-up{font-size:13px; color:var(--text-dim);}
   .next-up b{color:var(--text);}
 
@@ -516,7 +524,7 @@ function searchDB(keywords){
     }
   }
   if(!best) return null;
-  return { a: IMG_BASE+best.i, b: best.i2 ? IMG_BASE+best.i2 : (IMG_BASE+best.i) };
+  return { a: IMG_BASE+best.i, b: best.i2 ? IMG_BASE+best.i2 : (IMG_BASE+best.i), name: best.n };
 }
 
 function findExerciseImage(name){
@@ -600,6 +608,11 @@ function fmtSecondsLabel(sec){
 }
 function exTargetLabel(ex){
   return ex.mode==='time' ? fmtSecondsLabel(getTimeSeconds(ex)) : (ex.reps||'');
+}
+function youtubeSearchUrl(ex){
+  const term = (ex._img && ex._img.name) ? ex._img.name : (ex.name||'');
+  const q = (term + ' exercise tutorial').trim();
+  return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
 }
 
 /* =========================================================
@@ -985,6 +998,7 @@ function renderSession(){
     <div>
       <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
       <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
+      <a class="yt-link" href="${youtubeSearchUrl(ex)}" target="_blank" rel="noopener noreferrer">${icon('play')}<span>סרטון הדגמה מלא ביוטיוב</span></a>
     </div>
     <div class="session-actions">
       <button class="btn btn-primary btn-block btn-lg" data-action="finish-set">${icon('check')}<span>סיימתי את הסט</span></button>
@@ -995,6 +1009,7 @@ function renderSession(){
     <div>
       <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
       <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b></div>
+      <a class="yt-link" href="${youtubeSearchUrl(ex)}" target="_blank" rel="noopener noreferrer">${icon('play')}<span>סרטון הדגמה מלא ביוטיוב</span></a>
     </div>
     <div class="ring-wrap">
       ${renderRingSvg()}
