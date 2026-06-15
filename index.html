@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>אימון שלי</title>
+<title>המאמן של איתי</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#14171a">
 <link rel="icon" href="icon-192.png" type="image/png">
@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="אימון טיימר">
+<meta name="apple-mobile-web-app-title" content="המאמן של איתי">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -220,25 +220,69 @@
     text-align:center; gap:14px; padding:10px 0;
   }
 
-  .ex-image-wrap{
+  .movement-figure{
     position:relative;
     width:100%; max-width:280px; aspect-ratio:4/3;
     border-radius:var(--radius); overflow:hidden;
     background:var(--surface); border:1px solid var(--border);
     display:flex; align-items:center; justify-content:center;
   }
-  .ex-image-wrap img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; transition:opacity .6s ease-in-out; transform-origin:center center;}
-  .ex-image-wrap img.frame-a{animation:gifFrameA 3.6s ease-in-out infinite, gifZoomA 7.2s ease-in-out infinite;}
-  .ex-image-wrap img.frame-b{animation:gifFrameB 3.6s ease-in-out infinite, gifZoomB 7.2s ease-in-out infinite; opacity:0;}
-  @keyframes gifFrameA{0%,40%{opacity:1;} 50%,90%{opacity:0;} 100%{opacity:1;}}
-  @keyframes gifFrameB{0%,40%{opacity:0;} 50%,90%{opacity:1;} 100%{opacity:0;}}
-  @keyframes gifZoomA{0%,100%{transform:scale(1);} 50%{transform:scale(1.055);}}
-  @keyframes gifZoomB{0%,100%{transform:scale(1.055);} 50%{transform:scale(1);}}
+  .movement-svg{width:74%; height:74%;}
+  .movement-svg .m-ground{stroke:var(--border); stroke-width:3; stroke-linecap:round;}
+  .movement-svg .m-head{fill:var(--text);}
+  .movement-svg .m-torso, .movement-svg .m-limb{fill:var(--text-dim);}
+  .movement-svg .m-weight{fill:var(--accent);}
+
+  /* squat: body sinks, knees bend, arms reach forward for balance */
+  .pattern-squat .m-body{animation:mSquatBody 2.2s ease-in-out infinite;}
+  .pattern-squat .m-leg-back{animation:mSquatThigh 2.2s ease-in-out infinite;}
+  .pattern-squat .m-leg-front{animation:mSquatThigh 2.2s ease-in-out infinite;}
+  .pattern-squat .m-shin-back{animation:mSquatShin 2.2s ease-in-out infinite;}
+  .pattern-squat .m-shin-front{animation:mSquatShin 2.2s ease-in-out infinite;}
+  .pattern-squat .m-arm{animation:mSquatArm 2.2s ease-in-out infinite;}
+  @keyframes mSquatBody{0%,100%{transform:translateY(0);} 50%{transform:translateY(14px);}}
+  @keyframes mSquatThigh{0%,100%{transform:rotate(0);} 50%{transform:rotate(25deg);}}
+  @keyframes mSquatShin{0%,100%{transform:rotate(0);} 50%{transform:rotate(-45deg);}}
+  @keyframes mSquatArm{0%,100%{transform:rotate(0);} 50%{transform:rotate(-95deg);}}
+
+  /* hinge (deadlift): upper body folds forward at the hips, weight follows the hands */
+  .pattern-hinge .m-upper{animation:mHingeUpper 2.4s ease-in-out infinite;}
+  .pattern-hinge .m-leg-back, .pattern-hinge .m-leg-front{animation:mHingeThigh 2.4s ease-in-out infinite;}
+  .pattern-hinge .m-shin-back, .pattern-hinge .m-shin-front{animation:mHingeShin 2.4s ease-in-out infinite;}
+  @keyframes mHingeUpper{0%,100%{transform:rotate(8deg);} 50%{transform:rotate(62deg);}}
+  @keyframes mHingeThigh{0%,100%{transform:rotate(0);} 50%{transform:rotate(10deg);}}
+  @keyframes mHingeShin{0%,100%{transform:rotate(0);} 50%{transform:rotate(-14deg);}}
+
+  /* push (press/bench/push-up): arm extends away from the body */
+  .pattern-push .m-arm{animation:mPushArm 1.8s ease-in-out infinite;}
+  .pattern-push .m-forearm{animation:mPushForearm 1.8s ease-in-out infinite;}
+  @keyframes mPushArm{0%,100%{transform:rotate(-72deg);} 50%{transform:rotate(-98deg);}}
+  @keyframes mPushForearm{0%,100%{transform:rotate(100deg);} 50%{transform:rotate(2deg);}}
+
+  /* pull (row/curl/pulldown): arm reaches out then pulls the elbow back toward the torso */
+  .pattern-pull .m-arm{animation:mPullArm 1.8s ease-in-out infinite;}
+  .pattern-pull .m-forearm{animation:mPullForearm 1.8s ease-in-out infinite;}
+  @keyframes mPullArm{0%,100%{transform:rotate(-95deg);} 50%{transform:rotate(-25deg);}}
+  @keyframes mPullForearm{0%,100%{transform:rotate(0deg);} 50%{transform:rotate(110deg);}}
+
+  /* core (plank/crunch/abs): gentle crunch of the upper body */
+  .pattern-core .m-upper{animation:mCoreUpper 1.6s ease-in-out infinite;}
+  @keyframes mCoreUpper{0%,100%{transform:rotate(8deg);} 50%{transform:rotate(-10deg);}}
+
+  /* cardio (running/jumping/burpees): whole body hops, limbs spread at the peak */
+  .pattern-cardio .m-body{animation:mCardioBody .9s ease-in-out infinite;}
+  .pattern-cardio .m-leg-back{animation:mCardioLegBack .9s ease-in-out infinite;}
+  .pattern-cardio .m-leg-front{animation:mCardioLegFront .9s ease-in-out infinite;}
+  .pattern-cardio .m-arm{animation:mCardioArm .9s ease-in-out infinite;}
+  @keyframes mCardioBody{0%,100%{transform:translateY(0);} 50%{transform:translateY(-16px);}}
+  @keyframes mCardioLegBack{0%,100%{transform:rotate(0);} 50%{transform:rotate(-18deg);}}
+  @keyframes mCardioLegFront{0%,100%{transform:rotate(0);} 50%{transform:rotate(18deg);}}
+  @keyframes mCardioArm{0%,100%{transform:rotate(0);} 50%{transform:rotate(-160deg);}}
+
   @media (prefers-reduced-motion: reduce){
-    .ex-image-wrap img.frame-a, .ex-image-wrap img.frame-b{animation:none !important; transform:none !important;}
-    .ex-image-wrap img.frame-a{opacity:1;}
-    .ex-image-wrap img.frame-b{opacity:0;}
+    .movement-svg [class^="m-"]{animation:none !important;}
   }
+
   .ex-image-fallback{display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--text-dim);}
   .ex-image-fallback svg{width:34px; height:34px;}
   .ex-image-fallback span{font-size:12px;}
@@ -524,7 +568,7 @@ function searchDB(keywords){
     }
   }
   if(!best) return null;
-  return { a: IMG_BASE+best.i, b: best.i2 ? IMG_BASE+best.i2 : (IMG_BASE+best.i), name: best.n };
+  return { a: IMG_BASE+best.i, b: best.i2 ? IMG_BASE+best.i2 : (IMG_BASE+best.i), name: best.n, m: best.m||[] };
 }
 
 function findExerciseImage(name){
@@ -613,6 +657,72 @@ function youtubeSearchUrl(ex){
   const term = (ex._img && ex._img.name) ? ex._img.name : (ex.name||'');
   const q = (term + ' exercise tutorial').trim();
   return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
+}
+
+/* =========================================================
+   Movement pattern animation (stick-figure SVG loop)
+   ========================================================= */
+const PATTERN_KEYWORDS_HE = [
+  {pattern:'cardio', words:['ריצה','קפיצ','בורפי','חבל','ספרינט']},
+  {pattern:'core', words:['פלאנק','לוח','בטן','כפיפת בטן','כפיפות בטן','רוסיאן','וי אפ','סופרמן','טוויסט','הרמת רגל']},
+  {pattern:'hinge', words:['דדליפט','הרמת מתים','גוד מורנינג','היפ ת\u05f3ראסט','גלוט ברידג','גשר ירכ','הרחבת גב']},
+  {pattern:'squat', words:['סקוואט','לאנג','מכרע','לחיצת רגל','האק','עליות על קופסה','סטפ אפ']},
+  {pattern:'pull', words:['חתירה','מתח','קרל','פטיש','ביצפס','שראגס','פולי','חתירת']},
+  {pattern:'push', words:['לחיצ','דחיק','שכיבות','מקביל','דיפס','פרפר','טריצפס','כתפ','ארנולד']}
+];
+const PATTERN_KEYWORDS_EN = [
+  {pattern:'cardio', words:['run','jump','burpee','mountain climber','rope','sprint','jack']},
+  {pattern:'core', words:['plank','crunch','sit up','sit-up','leg raise','russian twist','side bend','v up','v-up','superman','knee raise']},
+  {pattern:'hinge', words:['deadlift','good morning','hip thrust','glute bridge','back extension','hyperextension']},
+  {pattern:'squat', words:['squat','lunge','step up','leg press','hack']},
+  {pattern:'pull', words:['row','pull','curl','lat','face pull','shrug','pulldown','chin up']},
+  {pattern:'push', words:['press','push','bench','dip','extension','fly','overhead']}
+];
+function getMovementPattern(ex){
+  const heText = (ex.name||'').toLowerCase();
+  for(const {pattern, words} of PATTERN_KEYWORDS_HE){
+    for(const w of words) if(heText.includes(w)) return pattern;
+  }
+  const enText = (ex._img && ex._img.name) ? ex._img.name.toLowerCase() : '';
+  for(const {pattern, words} of PATTERN_KEYWORDS_EN){
+    for(const w of words) if(enText.includes(w)) return pattern;
+  }
+  const muscles = ((ex._img && ex._img.m) || []).join(' ').toLowerCase();
+  if(/quad|hamstring|glute|calv/.test(muscles)) return 'squat';
+  if(/chest|tricep|shoulder/.test(muscles)) return 'push';
+  if(/back|lat|bicep|trap/.test(muscles)) return 'pull';
+  if(/abdom/.test(muscles)) return 'core';
+  return 'squat';
+}
+function renderMovementSVG(pattern){
+  return `<svg class="movement-svg pattern-${pattern}" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <line class="m-ground" x1="14" y1="152" x2="146" y2="152"/>
+    <g class="m-body">
+      <g class="m-leg-back" transform-origin="83 92">
+        <rect class="m-limb" x="78" y="92" width="10" height="30" rx="5"/>
+        <g class="m-shin-back" transform-origin="83 122">
+          <rect class="m-limb" x="78" y="122" width="10" height="28" rx="5"/>
+        </g>
+      </g>
+      <g class="m-leg-front" transform-origin="95 92">
+        <rect class="m-limb" x="90" y="92" width="10" height="30" rx="5"/>
+        <g class="m-shin-front" transform-origin="95 122">
+          <rect class="m-limb" x="90" y="122" width="10" height="28" rx="5"/>
+        </g>
+      </g>
+      <g class="m-upper" transform-origin="88 92">
+        <rect class="m-torso" x="78" y="40" width="20" height="52" rx="10"/>
+        <circle class="m-head" cx="88" cy="28" r="11"/>
+        <g class="m-arm" transform-origin="93 46">
+          <rect class="m-limb" x="88" y="46" width="9" height="26" rx="4.5"/>
+          <g class="m-forearm" transform-origin="93 72">
+            <rect class="m-limb" x="88" y="72" width="9" height="26" rx="4.5"/>
+            <circle class="m-weight" cx="92.5" cy="103" r="7"/>
+          </g>
+        </g>
+      </g>
+    </g>
+  </svg>`;
 }
 
 /* =========================================================
@@ -845,7 +955,7 @@ function renderHome(){
   return `<div class="screen">
     <div class="topbar">
       <div>
-        <h1>אימון שלי</h1>
+        <h1>המאמן של איתי</h1>
         <div class="sub">הטיימר והמדריך לאימון שלך</div>
       </div>
     </div>
@@ -985,16 +1095,10 @@ function renderSession(){
 
   let main='';
   if(s.phase==='active' && !isTimed){
-    const imgs = ex._img;
-    const imageBlock = imgs
-      ? `<div class="ex-image-wrap">
-          <img class="frame-a" src="${imgs.a}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=&quot;ex-image-fallback&quot;>${icon('image').replace(/"/g,'&quot;')}<span>אין תמונה מתאימה</span></div>'">
-          <img class="frame-b" src="${imgs.b}" alt="" loading="lazy" onerror="this.style.display='none'; var a=this.previousElementSibling; if(a) a.classList.remove('frame-a');">
-        </div>`
-      : `<div class="ex-image-wrap"><div class="ex-image-fallback">${icon('image')}<span>אין תמונה מתאימה</span></div></div>`;
+    const movementBlock = `<div class="movement-figure">${renderMovementSVG(getMovementPattern(ex))}</div>`;
 
     main = `
-    ${imageBlock}
+    ${movementBlock}
     <div>
       <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
       <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
