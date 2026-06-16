@@ -201,6 +201,11 @@
   }
   .adv-panel .field{margin-bottom:0;}
   .adv-panel .field input::placeholder{color:#5d6469; font-weight:500;}
+  .checkbox-row{
+    display:flex; align-items:center; gap:8px; margin-top:12px;
+    font-size:13px; color:var(--text-dim); cursor:pointer;
+  }
+  .checkbox-row input[type="checkbox"]{width:18px; height:18px; accent-color:var(--accent); flex:none;}
 
   .add-ex-btn{
     border:1.5px dashed var(--border); background:transparent; color:var(--text-dim);
@@ -845,6 +850,7 @@ function defaultPlan(){
     name:'תוכנית חדשה',
     defaultRestSet:60,
     defaultRestExercise:90,
+    warmup:{enabled:false, name:'חימום', seconds:300},
     exercises:[]
   };
 }
@@ -857,6 +863,7 @@ function exampleWorkout(){
     name:'אימון גוף מלא',
     defaultRestSet:60,
     defaultRestExercise:90,
+    warmup:{enabled:true, name:'ריצה קלה על הליכון', seconds:300},
     exercises:[
       {name:'סקוואט עם מוט', sets:4, reps:'10', mode:'reps', timeSeconds:30, weight:40, restSet:'', restExercise:''},
       {name:'לחיצת חזה', sets:4, reps:'8', mode:'reps', timeSeconds:30, weight:30, restSet:'', restExercise:''},
@@ -1081,13 +1088,17 @@ function renderEditor(){
         <div class="field-row">
           <div class="field">
             <label>מנוחה בין סטים (שנ')</label>
-            <input type="number" inputmode="numeric" min="0" placeholder="${escapeHtml(d.defaultRestSet)} (כללי)" value="${escapeHtml(ex.restSet)}" data-bind="ex.restSet" data-index="${i}">
+            <input type="number" inputmode="numeric" min="0" placeholder="${escapeHtml(d.defaultRestSet)} (כללי)" value="${ex.restSet===0?'':escapeHtml(ex.restSet)}" data-bind="ex.restSet" data-index="${i}" ${ex.restSet===0?'disabled':''}>
           </div>
           <div class="field">
             <label>מנוחה אחרי התרגיל (שנ')</label>
             <input type="number" inputmode="numeric" min="0" placeholder="${escapeHtml(d.defaultRestExercise)} (כללי)" value="${escapeHtml(ex.restExercise)}" data-bind="ex.restExercise" data-index="${i}">
           </div>
         </div>
+        <label class="checkbox-row">
+          <input type="checkbox" data-action="toggle-no-rest" data-index="${i}" ${ex.restSet===0?'checked':''}>
+          <span>ללא מנוחה בין סטים בתרגיל הזה</span>
+        </label>
       </div>` : ''}
       <div class="ex-card-actions">
         <button class="icon-btn" data-action="toggle-adv" data-index="${i}" aria-label="הגדרות מנוחה">${icon('layers')}</button>
@@ -1121,6 +1132,27 @@ function renderEditor(){
         <input type="number" inputmode="numeric" min="0" value="${escapeHtml(d.defaultRestExercise)}" data-bind="defaultRestExercise">
       </div>
     </div>
+
+    <div class="section-label">חימום לפני האימון</div>
+    <div class="field-row">
+      <div class="field">
+        <div class="mode-toggle">
+          <button type="button" class="mode-btn ${!d.warmup.enabled?'active':''}" data-action="set-warmup-enabled" data-enabled="0">ללא חימום</button>
+          <button type="button" class="mode-btn ${d.warmup.enabled?'active':''}" data-action="set-warmup-enabled" data-enabled="1">עם חימום</button>
+        </div>
+      </div>
+    </div>
+    ${d.warmup.enabled ? `
+    <div class="field-row">
+      <div class="field">
+        <label>שם החימום</label>
+        <input type="text" placeholder="לדוגמה ריצה" value="${escapeHtml(d.warmup.name)}" data-bind="warmup.name">
+      </div>
+      <div class="field">
+        <label>משך (דקות)</label>
+        <input type="number" inputmode="decimal" min="0.5" step="0.5" value="${escapeHtml(d.warmup.minutes)}" data-bind="warmup.minutes">
+      </div>
+    </div>` : ''}
 
     <div class="section-label">תרגילים</div>
     ${exHtml}
@@ -1167,7 +1199,24 @@ function renderSession(){
   }).join('');
 
   let main='';
-  if(s.phase==='active' && !isTimed){
+  if(s.phase==='warmup'){
+    const wu = plan.warmup || {};
+    main = `
+    <div>
+      <div class="ex-title">${escapeHtml(wu.name||'חימום')}</div>
+      <div class="ex-subtitle">${escapeHtml(fmtSecondsLabel(wu.seconds||0))}</div>
+    </div>
+    <div class="ring-wrap">
+      ${renderRingSvg()}
+      <div class="ring-center">
+        <div class="ring-time mono" id="ring-time">${fmtTime(s.secondsLeft)}</div>
+        <div class="ring-phase active">חימום</div>
+      </div>
+    </div>
+    <div class="session-actions">
+      <button class="btn btn-ghost btn-block" data-action="skip-warmup">${icon('skip')}<span>דילוג על החימום</span></button>
+    </div>`;
+  }else if(s.phase==='active' && !isTimed){
     const imgs = ex._img;
     const imageBlock = imgs
       ? `<div class="ex-image-wrap">
@@ -1252,6 +1301,9 @@ function renderSession(){
 
   const wakeOn = !!s.wakeLock;
   const wakeSupported = ('wakeLock' in navigator);
+  const progressText = s.phase==='warmup'
+    ? `חימום לפני האימון`
+    : `תרגיל ${s.exIndex+1} מתוך ${plan.exercises.length}`;
 
   return `<div class="screen">
     <div class="session-head">
@@ -1259,7 +1311,7 @@ function renderSession(){
         <button class="icon-btn" data-action="confirm-exit" aria-label="עצירת אימון">${icon('x')}</button>
         <div style="flex:1; text-align:center;">
           <div class="plan-name">${escapeHtml(plan.name)}</div>
-          <div class="progress-text">תרגיל ${s.exIndex+1} מתוך ${plan.exercises.length}</div>
+          <div class="progress-text">${progressText} &nbsp;·&nbsp; <span id="elapsed-time" class="mono">${fmtElapsed(Date.now()-s.startTime)}</span></div>
         </div>
         ${wakeSupported
           ? `<div class="wake-indicator ${wakeOn?'on':''}" title="${wakeOn?'המסך יישאר דלוק במהלך האימון':'לא ניתן לנעול את המסך במצב זה'}">${icon(wakeOn?'lock':'unlock')}</div>`
@@ -1274,11 +1326,14 @@ function renderSession(){
 }
 
 function renderDone(){
+  const ms = state.session && state.session.finishedElapsedMs;
+  const elapsed = ms ? fmtElapsed(ms) : '';
   return `<div class="screen">
     <div class="done-screen">
       <div class="done-glyph">${icon('check')}</div>
       <h2>כל הכבוד, סיימת את האימון!</h2>
       <p>${escapeHtml(state.session?state.session.plan.name:'')}</p>
+      ${elapsed ? `<p style="font-size:18px; font-weight:800; color:var(--accent); font-family:'Roboto Mono',monospace;">⏱ ${elapsed}</p>` : ''}
       <button class="btn btn-primary btn-lg" data-action="finish-done">חזרה לדף הבית</button>
     </div>
   </div>`;
@@ -1343,12 +1398,57 @@ function startSession(plan){
     timerId:null,
     completeFn:null,
     wakeLock:null,
-    exWeights
+    exWeights,
+    startTime: Date.now(),
+    elapsedTimerId: null
   };
   state.screen='session';
   ensureAudio();
   requestWakeLock();
-  enterActivePhase();
+  startElapsedTimer();
+  const wu = plan.warmup;
+  if(wu && wu.enabled && wu.seconds>0){
+    startWarmup(wu);
+  }else{
+    enterActivePhase();
+  }
+}
+
+function fmtElapsed(ms){
+  const totalSec = Math.floor(ms/1000);
+  const h = Math.floor(totalSec/3600);
+  const m = Math.floor((totalSec%3600)/60);
+  const s = totalSec%60;
+  if(h>0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+function startElapsedTimer(){
+  const s = state.session;
+  if(s.elapsedTimerId) clearInterval(s.elapsedTimerId);
+  s.elapsedTimerId = setInterval(()=>{
+    const el = document.getElementById('elapsed-time');
+    if(el) el.textContent = fmtElapsed(Date.now() - s.startTime);
+  }, 1000);
+}
+function startWarmup(wu){
+  const s = state.session;
+  s.phase = 'warmup';
+  s.secondsLeft = wu.seconds;
+  s.totalSeconds = wu.seconds;
+  s.completeFn = enterActivePhase;
+  clearInterval(s.timerId);
+  s.timerId = setInterval(()=>{
+    s.secondsLeft--;
+    if(s.secondsLeft<=5) playTick();
+    const el = document.getElementById('ring-time');
+    if(el) el.textContent = fmtTime(s.secondsLeft);
+    if(s.secondsLeft<=0){
+      clearInterval(s.timerId);
+      playEndSound();
+      s.completeFn();
+    }
+  }, 1000);
+  render();
 }
 
 function currentExercise(){ return state.session.plan.exercises[state.session.exIndex]; }
@@ -1413,7 +1513,10 @@ function skipExercise(){
   }
 }
 function finishWorkout(){
-  clearInterval(state.session.timerId);
+  const s = state.session;
+  clearInterval(s.timerId);
+  clearInterval(s.elapsedTimerId);
+  s.finishedElapsedMs = Date.now() - s.startTime;
   releaseWakeLock();
   state.screen='done';
   render();
@@ -1480,6 +1583,10 @@ function adjustRest(delta){
    ========================================================= */
 function openEditor(plan){
   state.editorDraft = plan ? JSON.parse(JSON.stringify(plan)) : defaultPlan();
+  const d = state.editorDraft;
+  // migrate old plans that didn't have warmup
+  if(!d.warmup) d.warmup = {enabled:false, name:'חימום', seconds:300};
+  d.warmup.minutes = clampFloat(d.warmup.seconds/60, 5, 0.5);
   state.advOpen = new Set();
   state.screen='editor';
   render();
@@ -1489,6 +1596,9 @@ function setBind(path, index, value){
   if(path.startsWith('ex.')){
     const key = path.slice(3);
     d.exercises[index][key] = value;
+  }else if(path.startsWith('warmup.')){
+    const key = path.slice(7);
+    d.warmup[key] = value;
   }else{
     d[path] = value;
   }
@@ -1546,6 +1656,11 @@ app.addEventListener('click', async (e)=>{
       d.name = (d.name||'').trim() || 'תוכנית ללא שם';
       d.defaultRestSet = clampNum(d.defaultRestSet,60,0);
       d.defaultRestExercise = clampNum(d.defaultRestExercise,90,0);
+      d.warmup = {
+        enabled: !!(d.warmup && d.warmup.enabled),
+        name: ((d.warmup && d.warmup.name)||'').trim() || 'חימום',
+        seconds: Math.round(clampFloat((d.warmup && d.warmup.minutes)||5, 5, 0.5)*60)
+      };
       d.exercises = d.exercises.map(ex=>({
         name:(ex.name||'').trim(),
         sets: clampNum(ex.sets,3,1),
@@ -1603,6 +1718,16 @@ app.addEventListener('click', async (e)=>{
       state.editorDraft.exercises[index].name = t.dataset.value;
       render();
       break;
+    case 'set-warmup-enabled':
+      state.editorDraft.warmup.enabled = t.dataset.enabled==='1';
+      render();
+      break;
+    case 'toggle-no-rest':{
+      const ex = state.editorDraft.exercises[index];
+      ex.restSet = (ex.restSet===0) ? '' : 0;
+      render();
+      break;
+    }
 
     // session
     case 'finish-set':
@@ -1617,6 +1742,10 @@ app.addEventListener('click', async (e)=>{
         onConfirm: ()=>{ skipExercise(); }
       };
       render();
+      break;
+    case 'skip-warmup':
+      clearInterval(state.session.timerId);
+      enterActivePhase();
       break;
     case 'skip-rest':
       skipRest();
@@ -1635,6 +1764,7 @@ app.addEventListener('click', async (e)=>{
         danger:true,
         onConfirm: ()=>{
           clearInterval(state.session.timerId);
+          clearInterval(state.session.elapsedTimerId);
           releaseWakeLock();
           state.session=null;
           state.screen='home';
