@@ -53,34 +53,11 @@
     overflow:hidden;
   }
 
-  /* ── GLOBAL BG WITH SPORT PHOTO ── */
-  #app-bg{
-    position:fixed;
-    inset:0;
-    max-width:480px;
-    left:50%; transform:translateX(-50%);
-    z-index:0;
-    pointer-events:none;
+  #app{
+    background:
+      radial-gradient(900px 500px at 50% -10%, rgba(255,107,26,0.07), transparent 60%),
+      #0d0f12;
   }
-  #app-bg::after{
-    content:'';
-    position:absolute; inset:0;
-    background:linear-gradient(180deg,
-      rgba(13,15,18,0.55) 0%,
-      rgba(13,15,18,0.72) 40%,
-      rgba(13,15,18,0.97) 100%
-    );
-    z-index:1;
-  }
-  #app-bg img{
-    width:100%; height:100%; object-fit:cover;
-    object-position:center 30%;
-    display:block;
-    transition:opacity 1.2s ease;
-    opacity:0;
-  }
-  #app-bg img.loaded{opacity:1;}
-  #app > *{position:relative; z-index:2;}
 
   .mono{font-family:'Roboto Mono',monospace; font-variant-numeric:tabular-nums;}
 
@@ -914,14 +891,7 @@ function setupRadio(){
    ========================================================= */
 const app = document.getElementById('app');
 
-/* Sport/gym photo pools (Unsplash) */
-const GYM_PHOTOS = [
-  'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80',
-  'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&q=80',
-  'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80',
-  'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=800&q=80',
-  'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80',
-];
+/* Sport/gym photo pools for plan cards (Unsplash) */
 const CARD_PHOTOS = [
   'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=600&q=75',
   'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&q=75',
@@ -946,9 +916,7 @@ function render(){
     case 'done': html = renderDone(); break;
   }
   if(state.modal) html += renderModal();
-  const bgIdx = Math.floor(Date.now()/30000) % GYM_PHOTOS.length;
-  const bgHtml = `<div id="app-bg"><img src="${GYM_PHOTOS[bgIdx]}" alt="" onload="this.classList.add('loaded')"></div>`;
-  app.innerHTML = bgHtml + html;
+  app.innerHTML = html;
   if(state.screen==='session') startTickAnimation();
 }
 
