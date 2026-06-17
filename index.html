@@ -60,7 +60,7 @@
     background-image:url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80');
     background-size:cover;
     background-position:center 20%;
-    opacity:0.20;
+    opacity:0.45;
   }
   #app::after{
     content:'';
@@ -76,7 +76,8 @@
   /* ---------- generic ---------- */
   .screen{
     flex:1; display:flex; flex-direction:column;
-    padding:18px 18px 28px;
+    padding:18px 18px 16px;
+    overflow:hidden;
     animation:fadeIn .32s cubic-bezier(.22,1,.36,1);
   }
   @keyframes fadeIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
@@ -231,16 +232,21 @@
   }
 
   /* Home screen layout — no scroll */
-  .screen-home{overflow:hidden;}
+  .screen-home{
+    overflow:hidden;
+    padding-bottom:18px;
+  }
   .home-body{
     flex:1; overflow-y:auto; overflow-x:hidden;
-    padding-bottom:8px;
+    padding-bottom:4px;
     -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
   }
   .home-body::-webkit-scrollbar{display:none;}
   .home-fab{
-    padding-top:12px;
+    padding-top:10px;
     flex-shrink:0;
+    padding-bottom:env(safe-area-inset-bottom, 0px);
   }
 
   /* ---------- editor ---------- */
@@ -708,6 +714,7 @@ const ICONS = {
   flag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4"/><path d="M4 15c3-1 5-1 8 0s5 1 8 0V4c-3 1-5 1-8 0S6 3 4 4"/></svg>',
   dumbbell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7v10"/><path d="M3 9v6"/><path d="M18 7v10"/><path d="M21 9v6"/><path d="M6 12h12"/></svg>',
   layers:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 8 4-8 4-8-4 8-4Z"/><path d="m4 10 8 4 8-4"/><path d="m4 14 8 4 8-4"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
   radio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4"/><path d="M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2"/></svg>',
   pause:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>'
 };
@@ -940,8 +947,15 @@ function render(){
     case 'session': html = renderSession(); break;
     case 'done': html = renderDone(); break;
   }
-  if(state.modal) html += renderModal();
   app.innerHTML = html;
+  if(state.modal){
+    let mo = document.getElementById('modal-root');
+    if(!mo){ mo = document.createElement('div'); mo.id='modal-root'; document.body.appendChild(mo); }
+    mo.innerHTML = renderModal();
+  } else {
+    const mo = document.getElementById('modal-root');
+    if(mo) mo.innerHTML = '';
+  }
   if(state.screen==='session') startTickAnimation();
 }
 
@@ -962,6 +976,15 @@ function renderHome(){
     const cards = state.plans.map(p=>{
       const totalSets = p.exercises.reduce((a,e)=>a+(Number(e.sets)||0),0);
       const photo = getBgPhoto(p.id);
+      // Estimated time: each set ~45s work + rest time per set, plus transitions
+      const estSecs = p.exercises.reduce((total, ex)=>{
+        const sets = Number(ex.sets)||0;
+        const restSec = Number(ex.rest)||60;
+        const workSec = ex.mode==='time' ? (Number(ex.reps)||30) : 40;
+        return total + sets*(workSec + restSec);
+      }, 0);
+      const estMins = Math.max(1, Math.round(estSecs/60));
+      const estLabel = estMins < 60 ? estMins + ' דק'' : Math.floor(estMins/60) + ':' + String(estMins%60).padStart(2,'0') + ' ש'';
       return `
       <div class="plan-card">
         <div class="plan-card-bg" style="background-image:url('${photo}')"></div>
@@ -974,6 +997,7 @@ function renderHome(){
               <div class="plan-card-meta">
                 <span>${icon('layers')} ${p.exercises.length} תרגילים</span>
                 <span>${icon('flag')} ${totalSets} סטים</span>
+                <span>${icon('clock')} ~${estLabel}</span>
               </div>
             </div>
           </div>
@@ -1422,7 +1446,7 @@ function setBind(path, index, value){
 /* =========================================================
    Event delegation
    ========================================================= */
-app.addEventListener('click', async (e)=>{
+document.body.addEventListener('click', async (e)=>{
   const t = e.target.closest('[data-action]');
   if(!t) return;
   const action = t.dataset.action;
@@ -1586,7 +1610,7 @@ app.addEventListener('click', async (e)=>{
   }
 });
 
-app.addEventListener('input', (e)=>{
+document.body.addEventListener('input', (e)=>{
   const t = e.target;
   if(!t.dataset || !t.dataset.bind) return;
   const index = t.dataset.index!=null ? parseInt(t.dataset.index,10) : null;
