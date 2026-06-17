@@ -35,7 +35,7 @@
     --glass:blur(18px) saturate(1.6);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{height:100%; margin:0;}
+  html,body{height:100%; margin:0; overflow:hidden;}
   body{
     background:#0d0f12;
     color:var(--text);
@@ -44,7 +44,8 @@
     overscroll-behavior:none;
   }
   #app{
-    max-width:480px;
+    width:100%;
+    max-width:600px; /* wider for Fold inner screen */
     margin:0 auto;
     height:100vh;
     height:100dvh;
@@ -54,22 +55,36 @@
     overflow:hidden;
     background:#0d0f12;
   }
-  #app::before{
-    content:'';
-    position:absolute; inset:0; z-index:0;
-    background-image:url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80');
-    background-size:cover;
-    background-position:center 20%;
-    opacity:0.45;
+  /* Galaxy Z Fold inner screen — tablet layout */
+  @media (min-width:600px){
+    #app{
+      max-width:720px;
+    }
+    .screen{padding:24px 32px 20px;}
+    .screen-home .home-header h1{font-size:32px;}
+    .plan-card{min-height:160px;}
+    .plan-card-title{font-size:20px;}
+    .session-ring{width:260px; height:260px;}
+    .ring-time{font-size:58px;}
   }
-  #app::after{
-    content:'';
-    position:absolute; inset:0; z-index:1;
+  /* Background layers as CSS on #app itself — no pseudo-element z-index issues */
+  #app-bg{
+    position:absolute; inset:0; z-index:0; pointer-events:none;
+    overflow:hidden;
+  }
+  #app-bg img{
+    width:100%; height:100%; object-fit:cover;
+    object-position:center 20%;
+    opacity:0.45;
+    display:block;
+  }
+  #app-bg-overlay{
+    position:absolute; inset:0;
     background:
       radial-gradient(ellipse at 50% 0%, rgba(255,107,26,0.14) 0%, transparent 65%),
       linear-gradient(180deg, rgba(13,15,18,0.2) 0%, rgba(13,15,18,0.65) 50%, rgba(13,15,18,0.97) 100%);
   }
-  #app > *{position:relative; z-index:2;}
+  #app > *:not(#app-bg){position:relative; z-index:2;}
 
   .mono{font-family:'Roboto Mono',monospace; font-variant-numeric:tabular-nums;}
 
@@ -77,6 +92,7 @@
   .screen{
     flex:1; display:flex; flex-direction:column;
     padding:18px 18px 16px;
+    min-height:0; /* critical for flex children to respect parent height */
     overflow:hidden;
     animation:fadeIn .32s cubic-bezier(.22,1,.36,1);
   }
@@ -88,6 +104,8 @@
   .topbar .sub{font-size:13px; color:var(--text-dim); margin-top:2px;}
 
   /* Glass topbar on inner screens */
+  /* Editor screen scrolls, others are fixed */
+  .screen-editor{overflow-y:auto; overflow-x:hidden;}
   .screen-editor > .topbar,
   .screen-session .session-head .topbar,
   .screen-done > .topbar {
@@ -234,6 +252,7 @@
   /* Home screen layout — no scroll */
   .screen-home{
     overflow:hidden;
+    min-height:0;
     padding-bottom:18px;
   }
   .home-body{
@@ -947,7 +966,8 @@ function render(){
     case 'session': html = renderSession(); break;
     case 'done': html = renderDone(); break;
   }
-  app.innerHTML = html;
+  const bgHtml = `<div id="app-bg"><img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80" alt=""><div id="app-bg-overlay"></div></div>`;
+  app.innerHTML = bgHtml + html;
   if(state.modal){
     let mo = document.getElementById('modal-root');
     if(!mo){ mo = document.createElement('div'); mo.id='modal-root'; document.body.appendChild(mo); }
