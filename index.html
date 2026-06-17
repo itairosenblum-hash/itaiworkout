@@ -426,6 +426,31 @@
   .ex-image-fallback svg{width:36px; height:36px;}
   .ex-image-fallback span{font-size:12px;}
 
+  /* Side-by-side: exercise photo + body muscle map */
+  .ex-media-row{
+    display:flex;
+    gap:10px;
+    align-items:stretch;
+    width:100%;
+  }
+  .ex-media-row .ex-image-wrap{
+    flex:1; max-width:none; min-width:0;
+    aspect-ratio:4/3;
+  }
+  .ex-body-svg{
+    width:80px; flex-shrink:0;
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--border-bright);
+    border-radius:var(--radius-sm);
+    overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    padding:4px;
+  }
+  .ex-body-svg--timed{
+    width:72px; height:160px;
+    margin:0 auto 4px;
+  }
+
   .ex-title{font-size:26px; font-weight:800; margin:4px 0 0; text-shadow:0 2px 12px rgba(0,0,0,.6);}
   .ex-subtitle{font-size:15px; color:var(--text-dim); font-weight:600;}
   .ex-subtitle b{color:var(--text); font-family:'Roboto Mono',monospace;}
@@ -711,6 +736,53 @@ function searchDB(keywords){
   }
   if(!best) return null;
   return { a: IMG_BASE+best.i, b: best.i2 ? IMG_BASE+best.i2 : (IMG_BASE+best.i) };
+}
+
+function findExerciseEntry(name){
+  if(!name) return null;
+  const norm = name.trim().toLowerCase();
+  if(!norm) return null;
+
+  // Helper that returns DB entry instead of image paths
+  function searchDBEntry(keywords){
+    keywords = [...new Set(keywords.map(k=>k.toLowerCase()))].filter(Boolean);
+    if(!keywords.length) return null;
+    let best=null, bestScore=0;
+    for(const ex of EX_DB){
+      const n = ex.n.toLowerCase();
+      let score=0;
+      for(const k of keywords) if(n.includes(k)) score++;
+      if(score===0) continue;
+      if(!best || score>bestScore || (score===bestScore && ex.n.length<best.n.length)){
+        best=ex; bestScore=score;
+      }
+    }
+    return best;
+  }
+
+  // 1) exact phrase match via HE_PHRASES
+  let bestPhraseEn=null, bestPhraseLen=0;
+  for(const he in HE_PHRASES){
+    const heLower = he.toLowerCase();
+    if(norm.includes(heLower) && heLower.length>bestPhraseLen){
+      bestPhraseEn = HE_PHRASES[he];
+      bestPhraseLen = heLower.length;
+    }
+  }
+  if(bestPhraseEn){
+    const hit = searchDBEntry(bestPhraseEn.split(' '));
+    if(hit) return hit;
+  }
+
+  // 2) word-by-word via HE_WORDS
+  const words = norm.split(/[\s,.\-\u05be'"\u05f3()]+/).filter(Boolean);
+  let keywords=[];
+  for(const w of words){
+    if(HE_WORDS[w]) keywords.push(...HE_WORDS[w]);
+    else if(/^[a-z]+$/.test(w)) keywords.push(w);
+  }
+  if(!keywords.length) return null;
+  return searchDBEntry(keywords);
 }
 
 function findExerciseImage(name){
@@ -1244,6 +1316,105 @@ function getTip(muscles){
   return MUSCLE_TIPS[muscles[0]] || null;
 }
 
+
+/* ── Muscle group paths on body SVG ── */
+function renderBodySVG(muscles){
+  const active = new Set(muscles||[]);
+  const dim = 'rgba(255,255,255,0.08)';
+  const hi  = '#ff6b1a';
+  const hi2 = 'rgba(255,107,26,0.35)';
+
+  function mc(groups){ return groups.some(g=>active.has(g)) ? hi : dim; }
+  function ms(groups){ return groups.some(g=>active.has(g)) ? hi2 : 'none'; }
+
+  return `<svg viewBox="0 0 120 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+  <!-- HEAD -->
+  <ellipse cx="60" cy="14" rx="10" ry="12" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="0.8"/>
+  <!-- NECK -->
+  <rect x="56" y="25" width="8" height="8" rx="3" fill="${mc(['neck','traps'])}" stroke="${ms(['neck','traps'])}" stroke-width="1"/>
+
+  <!-- TORSO FRONT (chest + abdominals) -->
+  <!-- Chest left -->
+  <path d="M45,34 Q52,32 59,34 L58,50 Q52,52 45,50 Z" fill="${mc(['chest'])}" stroke="${ms(['chest'])}" stroke-width="1"/>
+  <!-- Chest right -->
+  <path d="M61,34 Q68,32 75,34 L75,50 Q68,52 62,50 Z" fill="${mc(['chest'])}" stroke="${ms(['chest'])}" stroke-width="1"/>
+  <!-- Abdominals upper -->
+  <path d="M52,52 L68,52 L67,63 L53,63 Z" fill="${mc(['abdominals'])}" stroke="${ms(['abdominals'])}" stroke-width="1"/>
+  <!-- Abdominals lower -->
+  <path d="M52,65 L68,65 L67,76 L53,76 Z" fill="${mc(['abdominals'])}" stroke="${ms(['abdominals'])}" stroke-width="1"/>
+
+  <!-- SHOULDERS -->
+  <ellipse cx="42" cy="38" rx="7" ry="9" fill="${mc(['shoulders'])}" stroke="${ms(['shoulders'])}" stroke-width="1"/>
+  <ellipse cx="78" cy="38" rx="7" ry="9" fill="${mc(['shoulders'])}" stroke="${ms(['shoulders'])}" stroke-width="1"/>
+
+  <!-- TRAPS (top of back/shoulders) -->
+  <path d="M47,28 Q60,22 73,28 L73,35 Q60,30 47,35 Z" fill="${mc(['traps'])}" stroke="${ms(['traps'])}" stroke-width="1"/>
+
+  <!-- UPPER ARMS - biceps -->
+  <path d="M34,42 Q30,44 30,54 Q30,60 34,62 L38,60 Q36,54 36,44 Z" fill="${mc(['biceps'])}" stroke="${ms(['biceps'])}" stroke-width="1"/>
+  <path d="M82,42 Q86,44 86,54 Q86,60 82,62 L78,60 Q80,54 80,44 Z" fill="${mc(['biceps'])}" stroke="${ms(['biceps'])}" stroke-width="1"/>
+  <!-- UPPER ARMS - triceps (back side, shown slightly) -->
+  <path d="M35,43 Q32,45 32,57 L36,59 Q36,50 37,43 Z" fill="${mc(['triceps'])}" stroke="${ms(['triceps'])}" stroke-width="0.8" opacity="0.6"/>
+  <path d="M85,43 Q88,45 88,57 L84,59 Q84,50 83,43 Z" fill="${mc(['triceps'])}" stroke="${ms(['triceps'])}" stroke-width="0.8" opacity="0.6"/>
+
+  <!-- FOREARMS -->
+  <path d="M28,62 Q25,65 26,76 Q27,80 30,80 L34,78 Q32,70 32,63 Z" fill="${mc(['forearms'])}" stroke="${ms(['forearms'])}" stroke-width="1"/>
+  <path d="M92,62 Q95,65 94,76 Q93,80 90,80 L86,78 Q88,70 88,63 Z" fill="${mc(['forearms'])}" stroke="${ms(['forearms'])}" stroke-width="1"/>
+
+  <!-- HANDS -->
+  <ellipse cx="28" cy="84" rx="4" ry="5" fill="rgba(255,255,255,0.08)"/>
+  <ellipse cx="92" cy="84" rx="4" ry="5" fill="rgba(255,255,255,0.08)"/>
+
+  <!-- HIP/ADDUCTORS area -->
+  <path d="M52,78 L68,78 L70,88 L50,88 Z" fill="${mc(['glutes','adductors'])}" stroke="${ms(['glutes','adductors'])}" stroke-width="1"/>
+
+  <!-- QUADS left -->
+  <path d="M48,90 Q44,95 44,110 Q44,118 48,120 L56,120 Q58,112 57,95 Z" fill="${mc(['quadriceps'])}" stroke="${ms(['quadriceps'])}" stroke-width="1"/>
+  <!-- QUADS right -->
+  <path d="M72,90 Q76,95 76,110 Q76,118 72,120 L64,120 Q62,112 63,95 Z" fill="${mc(['quadriceps'])}" stroke="${ms(['quadriceps'])}" stroke-width="1"/>
+
+  <!-- ADDUCTORS inner thigh -->
+  <path d="M56,90 L64,90 L64,118 L56,118 Z" fill="${mc(['adductors'])}" stroke="${ms(['adductors'])}" stroke-width="0.8" opacity="0.7"/>
+
+  <!-- KNEES -->
+  <ellipse cx="50" cy="124" rx="6" ry="5" fill="rgba(255,255,255,0.07)"/>
+  <ellipse cx="70" cy="124" rx="6" ry="5" fill="rgba(255,255,255,0.07)"/>
+
+  <!-- CALVES left -->
+  <path d="M46,130 Q43,138 44,150 Q45,155 50,156 L54,154 Q55,144 54,130 Z" fill="${mc(['calves'])}" stroke="${ms(['calves'])}" stroke-width="1"/>
+  <!-- CALVES right -->
+  <path d="M74,130 Q77,138 76,150 Q75,155 70,156 L66,154 Q65,144 66,130 Z" fill="${mc(['calves'])}" stroke="${ms(['calves'])}" stroke-width="1"/>
+
+  <!-- FEET -->
+  <ellipse cx="50" cy="161" rx="6" ry="4" fill="rgba(255,255,255,0.07)"/>
+  <ellipse cx="70" cy="161" rx="6" ry="4" fill="rgba(255,255,255,0.07)"/>
+
+  <!-- BACK SIDE (overlaid slightly for lats/lower back/glutes/hamstrings/traps) -->
+  <!-- LATS -->
+  <path d="M41,46 Q38,55 40,68 L46,70 Q44,58 44,46 Z" fill="${mc(['lats','middle back'])}" stroke="${ms(['lats','middle back'])}" stroke-width="1" opacity="0.7"/>
+  <path d="M79,46 Q82,55 80,68 L74,70 Q76,58 76,46 Z" fill="${mc(['lats','middle back'])}" stroke="${ms(['lats','middle back'])}" stroke-width="1" opacity="0.7"/>
+  <!-- LOWER BACK -->
+  <path d="M52,68 L68,68 L69,78 L51,78 Z" fill="${mc(['lower back'])}" stroke="${ms(['lower back'])}" stroke-width="1" opacity="0.8"/>
+  <!-- GLUTES -->
+  <path d="M48,88 Q46,95 47,104 L55,106 Q56,98 56,90 Z" fill="${mc(['glutes'])}" stroke="${ms(['glutes'])}" stroke-width="1" opacity="0.7"/>
+  <path d="M72,88 Q74,95 73,104 L65,106 Q64,98 64,90 Z" fill="${mc(['glutes'])}" stroke="${ms(['glutes'])}" stroke-width="1" opacity="0.7"/>
+  <!-- HAMSTRINGS -->
+  <path d="M47,105 Q45,115 46,126 L54,127 Q55,116 55,106 Z" fill="${mc(['hamstrings'])}" stroke="${ms(['hamstrings'])}" stroke-width="1" opacity="0.7"/>
+  <path d="M73,105 Q75,115 74,126 L66,127 Q65,116 65,106 Z" fill="${mc(['hamstrings'])}" stroke="${ms(['hamstrings'])}" stroke-width="1" opacity="0.7"/>
+
+  <!-- Body outline -->
+  <path d="M60,2 M47,27 Q36,30 35,40 Q30,42 28,60 Q25,70 26,80 Q27,86 29,88
+           M73,27 Q84,30 85,40 Q90,42 92,60 Q95,70 94,80 Q93,86 91,88
+           M48,34 L48,78 Q49,90 48,105 Q46,120 44,130 Q42,150 46,160 Q50,166 50,166
+           M72,34 L72,78 Q71,90 72,105 Q74,120 76,130 Q78,150 74,160 Q70,166 70,166
+           M50,78 Q52,82 60,82 Q68,82 70,78"
+        fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.8"/>
+
+  <!-- Active label -->
+  ${active.size>0 ? `<text x="60" y="210" text-anchor="middle" font-size="7" fill="${hi}" font-family="Heebo,system-ui" font-weight="700">${Array.from(active).slice(0,2).map(m=>({'abdominals':'בטן','hamstrings':'ירך אח.','quadriceps':'ירך קד.','chest':'חזה','lats':'גב רחב','shoulders':'כתפיים','triceps':'תלת ראשי','biceps':'דו ראשי','middle back':'גב אמצעי','lower back':'גב תחתון','glutes':'ישבן','calves':'שוקיים','traps':'טרפז','forearms':'אמות','adductors':'מפשעה','abductors':'מרחיקי ירך','neck':'צוואר'}[m]||m)).join(' · ')}</text>` : ''}
+</svg>`;
+}
+
 function renderSession(){
   const s = state.session;
   const plan = s.plan;
@@ -1268,40 +1439,34 @@ function renderSession(){
         </div>`
       : `<div class="ex-image-wrap"><div class="ex-image-fallback">${icon('image')}<span>אין תמונה מתאימה</span></div></div>`;
 
-    const musclesHe = getMusclesHe(ex._muscles);
     const tip = getTip(ex._muscles);
-    const infoBlock = (musclesHe || tip) ? `
-      <div class="ex-info-block">
-        ${musclesHe ? `<div class="ex-muscles">${icon('target')} ${escapeHtml(musclesHe)}</div>` : ''}
-        ${tip ? `<div class="ex-tip">${icon('zap')} ${escapeHtml(tip)}</div>` : ''}
-      </div>` : '';
+    const bodySvg = renderBodySVG(ex._muscles);
 
     main = `
-    ${imageBlock}
+    <div class="ex-media-row">
+      ${imageBlock}
+      <div class="ex-body-svg">${bodySvg}</div>
+    </div>
     <div>
       <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
       <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
     </div>
-    ${infoBlock}
+    ${tip ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(tip)}</div></div>` : ''}
     <div class="session-actions">
       <button class="btn btn-primary btn-block btn-lg" data-action="finish-set">${icon('check')}<span>סיימתי את הסט</span></button>
       <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex" style="margin-top:10px">${icon('skip')}<span>דילוג על התרגיל</span></button>
     </div>`;
   }else if(s.phase==='active' && isTimed){
-    const musclesHe2 = getMusclesHe(ex._muscles);
     const tip2 = getTip(ex._muscles);
-    const infoBlock2 = (musclesHe2 || tip2) ? `
-      <div class="ex-info-block">
-        ${musclesHe2 ? `<div class="ex-muscles">${icon('target')} ${escapeHtml(musclesHe2)}</div>` : ''}
-        ${tip2 ? `<div class="ex-tip">${icon('zap')} ${escapeHtml(tip2)}</div>` : ''}
-      </div>` : '';
+    const bodySvg2 = renderBodySVG(ex._muscles);
 
     main = `
+    <div class="ex-body-svg ex-body-svg--timed">${bodySvg2}</div>
     <div>
       <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
       <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b></div>
     </div>
-    ${infoBlock2}
+    ${tip2 ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(tip2)}</div></div>` : ''}
     <div class="ring-wrap">
       ${renderRingSvg()}
       <div class="ring-center">
@@ -1423,10 +1588,7 @@ function startSession(plan){
   // attach resolved image to each exercise (best-effort lookup)
   const exercises = plan.exercises.map(e=>{
     const imgData = findExerciseImage(e.name);
-    // Find muscles from DB
-    const norm = (e.name||'').trim().toLowerCase();
-    const dbEntry = EXERCISE_DB.find(d=>d.n.toLowerCase()===norm) ||
-                    EXERCISE_DB.find(d=>norm.includes(d.n.toLowerCase()) || d.n.toLowerCase().includes(norm));
+    const dbEntry = findExerciseEntry(e.name);
     const muscles = dbEntry ? dbEntry.m : [];
     return {...e, _img: imgData, _muscles: muscles};
   });
