@@ -75,7 +75,7 @@
   #app-bg img{
     width:100%; height:100%; object-fit:cover;
     object-position:center 20%;
-    opacity:0.45;
+    opacity:0.55;
     display:block;
   }
   #app-bg-overlay{
@@ -1320,9 +1320,9 @@ function getTip(muscles){
 /* ── Muscle group paths on body SVG ── */
 function renderBodySVG(muscles){
   const active = new Set(muscles||[]);
-  const dim = 'rgba(255,255,255,0.08)';
+  const dim = 'rgba(255,255,255,0.45)';
   const hi  = '#ff6b1a';
-  const hi2 = 'rgba(255,107,26,0.35)';
+  const hi2 = 'rgba(255,107,26,0.7)';
 
   function mc(groups){ return groups.some(g=>active.has(g)) ? hi : dim; }
   function ms(groups){ return groups.some(g=>active.has(g)) ? hi2 : 'none'; }
@@ -1940,11 +1940,7 @@ async function init(){
 }
 init();
 
-if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js').catch(()=>{ /* offline support unavailable */ });
-  });
-}
+/* Service worker disabled — caused refresh/navigation issues */
 
 })();
 </script>
