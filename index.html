@@ -398,8 +398,15 @@
   }
 
   .session-main{
-    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    flex:1; display:flex; flex-direction:column; align-items:center;
+    justify-content:space-between;
     text-align:center; gap:14px; padding:10px 0;
+    min-height:0;
+  }
+  .session-main-content{
+    flex:1; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:14px; width:100%;
+    min-height:0;
   }
 
   .ex-image-wrap{
@@ -474,8 +481,9 @@
   .ring-phase.active{color:var(--accent);}
 
   .session-actions{
-    position:sticky; bottom:0; padding-top:16px; margin-top:auto;
-    background:linear-gradient(to top, rgba(13,15,18,1) 65%, transparent);
+    width:100%; padding-top:14px; flex-shrink:0;
+    background:linear-gradient(to top, rgba(13,15,18,0.97) 60%, transparent);
+    padding-bottom:env(safe-area-inset-bottom, 6px);
   }
   .rest-adjust{display:flex; gap:10px; margin-bottom:10px;}
   .rest-adjust .btn{flex:1;}
@@ -1443,15 +1451,17 @@ function renderSession(){
     const bodySvg = renderBodySVG(ex._muscles);
 
     main = `
-    <div class="ex-media-row">
-      ${imageBlock}
-      <div class="ex-body-svg">${bodySvg}</div>
+    <div class="session-main-content">
+      <div class="ex-media-row">
+        ${imageBlock}
+        <div class="ex-body-svg">${bodySvg}</div>
+      </div>
+      <div>
+        <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
+        <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
+      </div>
+      ${tip ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(tip)}</div></div>` : ''}
     </div>
-    <div>
-      <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
-      <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
-    </div>
-    ${tip ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(tip)}</div></div>` : ''}
     <div class="session-actions">
       <button class="btn btn-primary btn-block btn-lg" data-action="finish-set">${icon('check')}<span>סיימתי את הסט</span></button>
       <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex" style="margin-top:10px">${icon('skip')}<span>דילוג על התרגיל</span></button>
@@ -1461,17 +1471,19 @@ function renderSession(){
     const bodySvg2 = renderBodySVG(ex._muscles);
 
     main = `
-    <div class="ex-body-svg ex-body-svg--timed">${bodySvg2}</div>
-    <div>
-      <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
-      <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b></div>
-    </div>
-    ${tip2 ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(tip2)}</div></div>` : ''}
-    <div class="ring-wrap">
-      ${renderRingSvg()}
-      <div class="ring-center">
-        <div class="ring-time mono" id="ring-time">${fmtTime(s.secondsLeft)}</div>
-        <div class="ring-phase active">ביצוע התרגיל</div>
+    <div class="session-main-content">
+      <div class="ex-body-svg ex-body-svg--timed">${bodySvg2}</div>
+      <div>
+        <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
+        <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b></div>
+      </div>
+      ${tip2 ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(tip2)}</div></div>` : ''}
+      <div class="ring-wrap">
+        ${renderRingSvg()}
+        <div class="ring-center">
+          <div class="ring-time mono" id="ring-time">${fmtTime(s.secondsLeft)}</div>
+          <div class="ring-phase active">ביצוע התרגיל</div>
+        </div>
       </div>
     </div>
     <div class="session-actions">
@@ -1493,14 +1505,16 @@ function renderSession(){
       nextLine = `<div class="next-up">התרגיל הנוכחי: <b>${escapeHtml(ex.name||'תרגיל')}</b> &middot; סט הבא ${s.setIndex} מתוך ${ex.sets} &middot; ${escapeHtml(exTargetLabel(ex))}</div>`;
     }
     main = `
-    <div class="ring-wrap">
-      ${renderRingSvg()}
-      <div class="ring-center">
-        <div class="ring-time mono" id="ring-time">${fmtTime(s.secondsLeft)}</div>
-        <div class="ring-phase ${phaseClass}">${phaseLabel}</div>
+    <div class="session-main-content">
+      <div class="ring-wrap">
+        ${renderRingSvg()}
+        <div class="ring-center">
+          <div class="ring-time mono" id="ring-time">${fmtTime(s.secondsLeft)}</div>
+          <div class="ring-phase ${phaseClass}">${phaseLabel}</div>
+        </div>
       </div>
+      ${nextLine}
     </div>
-    ${nextLine}
     <div class="session-actions">
       <div class="rest-adjust">
         <button class="btn" data-action="adjust-rest" data-delta="-15">15-</button>
