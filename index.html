@@ -268,6 +268,36 @@
     padding-bottom:env(safe-area-inset-bottom, 0px);
   }
 
+  /* ---------- exercise info block (session) ---------- */
+  .ex-info-block{
+    background:rgba(255,255,255,0.06);
+    border:1px solid var(--border-bright);
+    border-radius:var(--radius-sm);
+    padding:10px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-bottom:4px;
+  }
+  .ex-muscles{
+    font-size:13px;
+    font-weight:700;
+    color:var(--accent);
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .ex-muscles svg{width:14px;height:14px;flex-shrink:0;}
+  .ex-tip{
+    font-size:12px;
+    color:var(--text-dim);
+    display:flex;
+    align-items:flex-start;
+    gap:7px;
+    line-height:1.5;
+  }
+  .ex-tip svg{width:13px;height:13px;flex-shrink:0;color:var(--accent-rest);margin-top:1px;}
+
   /* ---------- editor ---------- */
   .field{margin-bottom:14px;}
   .field label{display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;}
@@ -734,6 +764,8 @@ const ICONS = {
   dumbbell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7v10"/><path d="M3 9v6"/><path d="M18 7v10"/><path d="M21 9v6"/><path d="M6 12h12"/></svg>',
   layers:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 8 4-8 4-8-4 8-4Z"/><path d="m4 10 8 4 8-4"/><path d="m4 14 8 4 8-4"/></svg>',
   clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+  target:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+  zap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
   radio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4"/><path d="M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2"/></svg>',
   pause:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>'
 };
@@ -1159,6 +1191,59 @@ function renderRingSvg(){
   </svg>`;
 }
 
+
+/* ── Muscle name translations (English -> Hebrew) ── */
+const MUSCLE_HE = {
+  'abdominals':   'בטן',
+  'hamstrings':   'ירך אחורית',
+  'quadriceps':   'ירך קדמית',
+  'chest':        'חזה',
+  'lats':         'גב רחב',
+  'shoulders':    'כתפיים',
+  'triceps':      'תלת ראשי',
+  'biceps':       'דו ראשי',
+  'middle back':  'גב אמצעי',
+  'lower back':   'גב תחתון',
+  'glutes':       'ישבן',
+  'calves':       'שוקיים',
+  'traps':        'טרפז',
+  'forearms':     'אמות',
+  'adductors':    'מפשעה',
+  'abductors':    'מרחיקי ירך',
+  'neck':         'צוואר',
+};
+
+/* ── Tips per muscle group ── */
+const MUSCLE_TIPS = {
+  'abdominals':   'שמרו על גב שטוח ונשמו החוצה בזמן הכיווץ.',
+  'hamstrings':   'שמרו על הברכיים קצת כפופות וגב ישר לאורך כל התרגיל.',
+  'quadriceps':   'לחצו את העקב לקרקע ושמרו על הברך מעל האצבע.',
+  'chest':        'סגרו את שכמות הגב ושמרו על קשת טבעית בגב התחתון.',
+  'lats':         'הורידו את השכמות מטה לפני שאתם מושכים — אל תשתמשו בתנע.',
+  'shoulders':    'אל תניחו לאגרופים להתרומם מעל פרק כף היד.',
+  'triceps':      'נעלו את המרפק ליד הגוף וכופפו לאט מטה.',
+  'biceps':       'שמרו על המרפקים נייחים לצד הגוף לאורך כל התנועה.',
+  'middle back':  'משכו עם המרפקים ולא עם הידיים — "שברו" את המוט לשניים.',
+  'lower back':   'אל תקמרו את הגב — שמרו על עמוד שדרה נייטרלי לאורך כל הדרך.',
+  'glutes':       'כווצו את הישבן בשיא התנועה ושמרו שניה לפני ירידה.',
+  'calves':       'עלו על קצות האצבעות לגמרי ורדו עד מתיחה מלאה.',
+  'traps':        'הרימו ישר למעלה — לא קדימה. אל תסובבו את הכתפיים.',
+  'forearms':     'תנועה קטנה ומבוקרת בפרק כף היד — אל תשתמשו בתנופה.',
+  'adductors':    'תנועה איטית ומבוקרת, הרגישו את המתיחה בפנים הירך.',
+  'abductors':    'שמרו על הגוף ישר ואל תיטו לצד בזמן הרמת הרגל.',
+  'neck':         'תנועות איטיות בלבד — אל תבצעו מתיחה חדה בצוואר.',
+};
+
+function getMusclesHe(muscles){
+  if(!muscles || !muscles.length) return null;
+  return muscles.map(m => MUSCLE_HE[m] || m).join(', ');
+}
+
+function getTip(muscles){
+  if(!muscles || !muscles.length) return null;
+  return MUSCLE_TIPS[muscles[0]] || null;
+}
+
 function renderSession(){
   const s = state.session;
   const plan = s.plan;
@@ -1183,22 +1268,40 @@ function renderSession(){
         </div>`
       : `<div class="ex-image-wrap"><div class="ex-image-fallback">${icon('image')}<span>אין תמונה מתאימה</span></div></div>`;
 
+    const musclesHe = getMusclesHe(ex._muscles);
+    const tip = getTip(ex._muscles);
+    const infoBlock = (musclesHe || tip) ? `
+      <div class="ex-info-block">
+        ${musclesHe ? `<div class="ex-muscles">${icon('target')} ${escapeHtml(musclesHe)}</div>` : ''}
+        ${tip ? `<div class="ex-tip">${icon('zap')} ${escapeHtml(tip)}</div>` : ''}
+      </div>` : '';
+
     main = `
     ${imageBlock}
     <div>
       <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
       <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
     </div>
+    ${infoBlock}
     <div class="session-actions">
       <button class="btn btn-primary btn-block btn-lg" data-action="finish-set">${icon('check')}<span>סיימתי את הסט</span></button>
       <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex" style="margin-top:10px">${icon('skip')}<span>דילוג על התרגיל</span></button>
     </div>`;
   }else if(s.phase==='active' && isTimed){
+    const musclesHe2 = getMusclesHe(ex._muscles);
+    const tip2 = getTip(ex._muscles);
+    const infoBlock2 = (musclesHe2 || tip2) ? `
+      <div class="ex-info-block">
+        ${musclesHe2 ? `<div class="ex-muscles">${icon('target')} ${escapeHtml(musclesHe2)}</div>` : ''}
+        ${tip2 ? `<div class="ex-tip">${icon('zap')} ${escapeHtml(tip2)}</div>` : ''}
+      </div>` : '';
+
     main = `
     <div>
       <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
       <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b></div>
     </div>
+    ${infoBlock2}
     <div class="ring-wrap">
       ${renderRingSvg()}
       <div class="ring-center">
@@ -1318,7 +1421,15 @@ function updateWakeBadge(){
    ========================================================= */
 function startSession(plan){
   // attach resolved image to each exercise (best-effort lookup)
-  const exercises = plan.exercises.map(e=>({...e, _img: findExerciseImage(e.name)}));
+  const exercises = plan.exercises.map(e=>{
+    const imgData = findExerciseImage(e.name);
+    // Find muscles from DB
+    const norm = (e.name||'').trim().toLowerCase();
+    const dbEntry = EXERCISE_DB.find(d=>d.n.toLowerCase()===norm) ||
+                    EXERCISE_DB.find(d=>norm.includes(d.n.toLowerCase()) || d.n.toLowerCase().includes(norm));
+    const muscles = dbEntry ? dbEntry.m : [];
+    return {...e, _img: imgData, _muscles: muscles};
+  });
   state.session = {
     plan: {...plan, exercises},
     exIndex:0,
