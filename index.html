@@ -1004,7 +1004,7 @@ function renderHome(){
         return total + sets*(workSec + restSec);
       }, 0);
       const estMins = Math.max(1, Math.round(estSecs/60));
-      const estLabel = estMins < 60 ? estMins + ' דק'' : Math.floor(estMins/60) + ':' + String(estMins%60).padStart(2,'0') + ' ש'';
+      const estLabel = estMins < 60 ? estMins + " דק'" : Math.floor(estMins/60) + ":" + String(estMins%60).padStart(2,"0") + " ש'";
       return `
       <div class="plan-card">
         <div class="plan-card-bg" style="background-image:url('${photo}')"></div>
