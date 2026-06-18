@@ -915,14 +915,16 @@ async function loadPlans(){
   try{
     const res = await fetch(GS_URL, {method:'GET', cache:'no-store'});
     if(res.ok){
-      const text = await res.text();
+      const text = await res.text().then(t=>t.trim());
       const data = JSON.parse(text);
-      if(Array.isArray(data) && data.length > 0){
-        try{ localStorage.setItem(LOCAL_STORAGE_KEY, text); }catch(e){}
+      if(Array.isArray(data)){
+        // Sheets הוא המקור האמיתי — תמיד נאמין לו, גם אם ריק
+        try{ localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data)); }catch(e){}
         return data;
       }
     }
-  }catch(e){ console.warn('Google Sheets load failed', e); }
+  }catch(e){ console.warn('Google Sheets load failed, using localStorage', e); }
+  // fallback רק אם Sheets לא זמין (אין אינטרנט וכו')
   try{
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if(raw) return JSON.parse(raw);
