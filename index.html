@@ -937,7 +937,8 @@ async function savePlans(plans){
     await fetch(GS_URL, {
       method:'POST',
       body: json,
-      headers:{'Content-Type':'application/json'}
+      headers:{'Content-Type':'text/plain'},
+      mode:'no-cors'
     });
   }catch(e){ console.warn('Google Sheets save failed', e); }
 }
