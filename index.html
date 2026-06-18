@@ -476,6 +476,23 @@
     width:100%; padding-top:14px;
     margin-top:8px;
   }
+  /* Elapsed workout timer */
+  .workout-elapsed{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    font-size:13px; font-weight:700; color:var(--text-dim);
+    font-family:'Roboto Mono',monospace;
+  }
+  .workout-elapsed svg{width:14px; height:14px; color:var(--accent);}
+  /* Big round finish-set button */
+  .btn-finish-set{
+    width:120px; height:120px; border-radius:50% !important;
+    font-size:13px !important; font-weight:800 !important;
+    flex-direction:column; gap:6px !important;
+    padding:0 !important;
+    box-shadow:0 6px 28px var(--accent-glow), 0 1px 0 rgba(255,255,255,.15) inset !important;
+    margin:0 auto; display:flex;
+  }
+  .btn-finish-set svg{width:32px !important; height:32px !important;}
   .rest-adjust{display:flex; gap:10px; margin-bottom:10px;}
   .rest-adjust .btn{flex:1;}
 
@@ -1492,8 +1509,10 @@ function renderSession(){
       ${tip ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(tip)}</div></div>` : ''}
     </div>
     <div class="session-actions">
-      <button class="btn btn-primary btn-block btn-lg" data-action="finish-set">${icon('check')}<span>סיימתי את הסט</span></button>
-      <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex" style="margin-top:10px">${icon('skip')}<span>דילוג על התרגיל</span></button>
+      <div style="display:flex; justify-content:center; margin-bottom:14px;">
+        <button class="btn btn-primary btn-finish-set" data-action="finish-set">${icon('check')}<span>סיימתי</span></button>
+      </div>
+      <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex">${icon('skip')}<span>דילוג על התרגיל</span></button>
     </div>`;
   }else if(s.phase==='active' && isTimed){
     const tip2 = getTip(ex._muscles);
@@ -1520,8 +1539,10 @@ function renderSession(){
         <button class="btn" data-action="adjust-rest" data-delta="-15">15-</button>
         <button class="btn" data-action="adjust-rest" data-delta="15">15+</button>
       </div>
-      <button class="btn btn-primary btn-block btn-lg" data-action="finish-set">${icon('check')}<span>סיימתי מוקדם</span></button>
-      <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex" style="margin-top:10px">${icon('skip')}<span>דילוג על התרגיל</span></button>
+      <div style="display:flex; justify-content:center; margin-bottom:14px;">
+        <button class="btn btn-primary btn-finish-set" data-action="finish-set">${icon('check')}<span>סיימתי</span></button>
+      </div>
+      <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex">${icon('skip')}<span>דילוג על התרגיל</span></button>
     </div>`;
   }else{ // restSet / restExercise
     const isExRest = s.phase==='restExercise';
@@ -1563,6 +1584,7 @@ function renderSession(){
         <div style="flex:1; text-align:center;">
           <div class="plan-name">${escapeHtml(plan.name)}</div>
           <div class="progress-text">תרגיל ${s.exIndex+1} מתוך ${plan.exercises.length}</div>
+          <div class="workout-elapsed">${icon('clock')}<span id="workout-elapsed">00:00</span></div>
         </div>
         <div style="width:42px"></div>
       </div>
@@ -1612,6 +1634,10 @@ function updateRingDisplay(){
   if(!s) return;
   const timeEl = document.getElementById('ring-time');
   const ringEl = document.getElementById('ring-progress');
+  const elapsedEl = document.getElementById('workout-elapsed');
+  if(elapsedEl && s.startTime){
+    elapsedEl.textContent = fmtTime(Math.floor((Date.now()-s.startTime)/1000));
+  }
   if(!timeEl || !ringEl) return;
   timeEl.textContent = fmtTime(s.secondsLeft);
   const {c} = ringGeometry();
@@ -1644,7 +1670,8 @@ function startSession(plan){
     totalSeconds:0,
     timerId:null,
     completeFn:null,
-    wakeLock:null
+    wakeLock:null,
+    startTime: Date.now()
   };
   state.screen='session';
   ensureAudio();
@@ -1667,6 +1694,12 @@ function enterActivePhase(){
   }else{
     s.completeFn = null;
     render();
+    // keep elapsed timer ticking during reps phase
+    clearInterval(s.elapsedTimer);
+    s.elapsedTimer = setInterval(()=>{
+      const el = document.getElementById('workout-elapsed');
+      if(el && s.startTime) el.textContent = fmtTime(Math.floor((Date.now()-s.startTime)/1000));
+    }, 1000);
   }
 }
 
@@ -1706,6 +1739,7 @@ function finishWorkout(){
 
 function startRest(phase, seconds){
   const s = state.session;
+  clearInterval(s.elapsedTimer);
   s.phase = phase;
   s.totalSeconds = Math.max(1, seconds);
   s.secondsLeft = Math.max(0, seconds);
