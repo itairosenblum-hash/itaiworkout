@@ -477,6 +477,33 @@
     background:rgba(255,107,26,0.13); border-color:var(--accent); color:var(--accent);
   }
 
+  /* Exercise preview modal */
+  .ex-preview-overlay{
+    position:fixed; inset:0; z-index:200;
+    background:rgba(0,0,0,0.75); backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px; animation:fadeIn .18s ease;
+  }
+  .ex-preview-box{
+    background:var(--surface-solid); border:1px solid var(--border-bright);
+    border-radius:var(--radius); max-width:360px; width:100%;
+    overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.7);
+    animation:popIn .2s cubic-bezier(.22,1,.36,1);
+  }
+  .ex-preview-img{
+    width:100%; aspect-ratio:16/9; object-fit:cover; display:block;
+  }
+  .ex-preview-none{
+    width:100%; aspect-ratio:16/9; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:10px;
+    background:rgba(255,255,255,0.04); color:var(--text-dim); font-size:15px;
+  }
+  .ex-preview-none span{ font-size:36px; }
+  .ex-preview-footer{
+    padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .ex-preview-name{ font-weight:700; font-size:15px; flex:1; }
+
   /* Side badge in workout session */
   .side-badge{
     display:inline-flex; align-items:center; gap:6px;
@@ -1345,6 +1372,7 @@ function renderEditor(){
       </div>` : ''}
       <div class="ex-card-actions">
         <button class="icon-btn" data-action="toggle-adv" data-index="${i}" aria-label="הגדרות מנוחה">${icon('layers')}</button>
+        ${ex.name ? `<button class="icon-btn" data-action="preview-ex" data-index="${i}" aria-label="תצוגה מקדימה">👁</button>` : ''}
         <button class="icon-btn" data-action="move-up" data-index="${i}" aria-label="הזז למעלה" ${i===0?'disabled':''}>${icon('up')}</button>
         <button class="icon-btn" data-action="move-down" data-index="${i}" aria-label="הזז למטה" ${i===d.exercises.length-1?'disabled':''}>${icon('down')}</button>
         <button class="icon-btn danger" data-action="remove-ex" data-index="${i}" aria-label="מחיקת תרגיל" style="margin-right:auto">${icon('trash')}</button>
@@ -2010,6 +2038,32 @@ document.body.addEventListener('click', async (e)=>{
     case 'toggle-bilateral':
       state.editorDraft.exercises[index].bilateral = !state.editorDraft.exercises[index].bilateral;
       render();
+      break;
+    case 'preview-ex': {
+      const exName = state.editorDraft.exercises[index].name;
+      const imgData = findExerciseImage(exName);
+      // Build overlay and inject into app
+      const overlay = document.createElement('div');
+      overlay.className = 'ex-preview-overlay';
+      overlay.innerHTML = `
+        <div class="ex-preview-box">
+          ${imgData
+            ? `<img class="ex-preview-img" src="${imgData.a}" alt="${escapeHtml(exName)}" onerror="this.outerHTML='<div class=\\"ex-preview-none\\"><span>📷</span>אין תמונה במאגר</div>'">`
+            : `<div class="ex-preview-none"><span>📷</span>אין תמונה במאגר עבור תרגיל זה</div>`
+          }
+          <div class="ex-preview-footer">
+            <div class="ex-preview-name">${escapeHtml(exName)}</div>
+            <button class="btn" data-action="close-preview">סגירה</button>
+          </div>
+        </div>`;
+      overlay.addEventListener('click', (ev) => {
+        if(ev.target === overlay || ev.target.dataset.action === 'close-preview') overlay.remove();
+      });
+      document.getElementById('app').appendChild(overlay);
+      break;
+    }
+    case 'close-preview':
+      document.querySelector('.ex-preview-overlay')?.remove();
       break;
     case 'remove-ex':
       state.editorDraft.exercises.splice(index,1);
