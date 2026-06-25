@@ -454,6 +454,28 @@
   .ex-subtitle{font-size:15px; color:var(--text-dim); font-weight:600;}
   .ex-subtitle b{color:var(--text); font-family:'Roboto Mono',monospace;}
 
+  /* Bilateral toggle button in editor */
+  .bilateral-toggle{
+    display:flex; align-items:center; gap:8px;
+    background:rgba(255,255,255,0.06); border:1.5px solid var(--border);
+    border-radius:var(--radius-sm); padding:10px 14px;
+    color:var(--text-dim); font-size:14px; font-family:'Heebo',sans-serif;
+    cursor:pointer; width:100%; transition:all .18s; text-align:right;
+  }
+  .bilateral-toggle.active{
+    background:rgba(255,107,26,0.13); border-color:var(--accent); color:var(--accent);
+  }
+
+  /* Side badge in workout session */
+  .side-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 14px; border-radius:30px;
+    font-size:14px; font-weight:700; letter-spacing:.3px;
+    margin-bottom:6px;
+  }
+  .side-badge.right{ background:rgba(255,107,26,0.18); color:var(--accent); border:1.5px solid rgba(255,107,26,0.5); }
+  .side-badge.left{ background:rgba(34,211,200,0.15); color:var(--accent-rest); border:1.5px solid rgba(34,211,200,0.5); }
+
   .next-up{font-size:13px; color:var(--text-dim);}
   .next-up b{color:var(--text);}
 
@@ -984,7 +1006,7 @@ function defaultPlan(){
   };
 }
 function defaultExercise(){
-  return {name:'', sets:3, reps:'10', mode:'reps', timeSeconds:30, restSet:'', restExercise:''};
+  return {name:'', sets:3, reps:'10', mode:'reps', timeSeconds:30, restSet:'', restExercise:'', bilateral:false};
 }
 function exampleWorkout(){
   return {
@@ -1027,7 +1049,7 @@ function beep(freq,dur,vol){
     osc.stop(audioCtx.currentTime+dur);
   }catch(e){}
 }
-function playTick(){ beep(900,0.09,0.18); if(navigator.vibrate) navigator.vibrate(35); }
+function playTick(){ beep(900,0.12,0.55); if(navigator.vibrate) navigator.vibrate(60); }
 function playEndSound(){
   beep(660,0.16,0.3);
   setTimeout(()=>beep(990,0.28,0.3),170);
@@ -1251,6 +1273,15 @@ function renderEditor(){
           <div class="field">
             <label>מנוחה אחרי התרגיל (שנ')</label>
             <input type="number" inputmode="numeric" min="0" placeholder="${escapeHtml(d.defaultRestExercise)} (כללי)" value="${escapeHtml(ex.restExercise)}" data-bind="ex.restExercise" data-index="${i}">
+          </div>
+        </div>
+        <div class="field-row" style="margin-top:8px">
+          <div class="field" style="flex:1">
+            <label>תרגיל דו-צדדי (ימין + שמאל)</label>
+            <button type="button" class="bilateral-toggle ${ex.bilateral?'active':''}" data-action="toggle-bilateral" data-index="${i}">
+              <span style="font-size:17px">⇄</span>
+              <span>${ex.bilateral ? 'כן — כל סט מחולק לצד ימין ושמאל' : 'לא — תרגיל רגיל'}</span>
+            </button>
           </div>
         </div>
       </div>` : ''}
@@ -1495,6 +1526,12 @@ function renderSession(){
 
     const tip = getTip(ex._muscles);
     const bodySvg = renderBodySVG(ex._muscles);
+    const sideBadge = ex.bilateral && s.sidePhase
+      ? `<div class="side-badge ${s.sidePhase==='right'?'right':'left'}">${s.sidePhase==='right'?'⬅ צד ימין':'➡ צד שמאל'}</div>`
+      : '';
+    const finishLabel = ex.bilateral && s.sidePhase==='right' ? 'סיימתי צד ימין'
+                      : ex.bilateral && s.sidePhase==='left'  ? 'סיימתי צד שמאל'
+                      : 'סיימתי';
 
     main = `
     <div class="session-main-content">
@@ -1504,25 +1541,33 @@ function renderSession(){
       </div>
       <div>
         <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
+        ${sideBadge}
         <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
       </div>
       ${tip ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(tip)}</div></div>` : ''}
     </div>
     <div class="session-actions">
       <div style="display:flex; justify-content:center; margin-bottom:14px;">
-        <button class="btn btn-primary btn-finish-set" data-action="finish-set">${icon('check')}<span>סיימתי</span></button>
+        <button class="btn btn-primary btn-finish-set" data-action="finish-set">${icon('check')}<span>${finishLabel}</span></button>
       </div>
       <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex">${icon('skip')}<span>דילוג על התרגיל</span></button>
     </div>`;
   }else if(s.phase==='active' && isTimed){
     const tip2 = getTip(ex._muscles);
     const bodySvg2 = renderBodySVG(ex._muscles);
+    const sideBadge2 = ex.bilateral && s.sidePhase
+      ? `<div class="side-badge ${s.sidePhase==='right'?'right':'left'}">${s.sidePhase==='right'?'⬅ צד ימין':'➡ צד שמאל'}</div>`
+      : '';
+    const finishLabel2 = ex.bilateral && s.sidePhase==='right' ? 'סיימתי צד ימין'
+                       : ex.bilateral && s.sidePhase==='left'  ? 'סיימתי צד שמאל'
+                       : 'סיימתי מוקדם';
 
     main = `
     <div class="session-main-content">
       <div class="ex-body-svg ex-body-svg--timed">${bodySvg2}</div>
       <div>
         <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
+        ${sideBadge2}
         <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b></div>
       </div>
       ${tip2 ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(tip2)}</div></div>` : ''}
@@ -1540,7 +1585,7 @@ function renderSession(){
         <button class="btn" data-action="adjust-rest" data-delta="15">15+</button>
       </div>
       <div style="display:flex; justify-content:center; margin-bottom:14px;">
-        <button class="btn btn-primary btn-finish-set" data-action="finish-set">${icon('check')}<span>סיימתי</span></button>
+        <button class="btn btn-primary btn-finish-set" data-action="finish-set">${icon('check')}<span>${finishLabel2}</span></button>
       </div>
       <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex">${icon('skip')}<span>דילוג על התרגיל</span></button>
     </div>`;
@@ -1666,6 +1711,7 @@ function startSession(plan){
     exIndex:0,
     setIndex:1,
     phase:'active',
+    sidePhase: null,  // 'right' | 'left' | null
     secondsLeft:0,
     totalSeconds:0,
     timerId:null,
@@ -1689,6 +1735,10 @@ function enterActivePhase(){
   const s = state.session;
   const ex = currentExercise();
   s.phase = 'active';
+  // For bilateral exercises, always start new set on right side
+  if(ex.bilateral && s.sidePhase === null){
+    s.sidePhase = 'right';
+  }
   if(ex.mode==='time'){
     startActiveTimer(getTimeSeconds(ex));
   }else{
@@ -1709,6 +1759,17 @@ function finishSet(){
   clearInterval(s.timerId);
   const plan = s.plan;
   const ex = currentExercise();
+
+  // Bilateral: finished right side → switch to left (no rest in between)
+  if(ex.bilateral && s.sidePhase === 'right'){
+    s.sidePhase = 'left';
+    enterActivePhase();
+    return;
+  }
+
+  // Done with full set (non-bilateral, or just finished left side)
+  if(ex.bilateral) s.sidePhase = 'right'; // reset for next set
+
   if(s.setIndex < ex.sets){
     s.setIndex++;
     startRest('restSet', getRestSet(ex,plan));
@@ -1778,6 +1839,7 @@ function endRest(){
   if(s.phase==='restExercise'){
     s.exIndex++;
     s.setIndex=1;
+    s.sidePhase = null; // reset for next exercise
   }
   enterActivePhase();
 }
@@ -1872,7 +1934,8 @@ document.body.addEventListener('click', async (e)=>{
         reps:(ex.reps||'').toString().trim() || '10',
         timeSeconds: clampNum(ex.timeSeconds,30,1),
         restSet: ex.restSet===''||ex.restSet==null ? '' : clampNum(ex.restSet,0,0),
-        restExercise: ex.restExercise===''||ex.restExercise==null ? '' : clampNum(ex.restExercise,0,0)
+        restExercise: ex.restExercise===''||ex.restExercise==null ? '' : clampNum(ex.restExercise,0,0),
+        bilateral: !!ex.bilateral
       })).filter(ex=>ex.name);
       const idx = state.plans.findIndex(p=>p.id===d.id);
       if(idx>=0) state.plans[idx]=d; else state.plans.push(d);
@@ -1884,6 +1947,10 @@ document.body.addEventListener('click', async (e)=>{
     }
     case 'add-ex':
       state.editorDraft.exercises.push(defaultExercise());
+      render();
+      break;
+    case 'toggle-bilateral':
+      state.editorDraft.exercises[index].bilateral = !state.editorDraft.exercises[index].bilateral;
       render();
       break;
     case 'remove-ex':
