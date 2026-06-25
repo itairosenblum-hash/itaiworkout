@@ -1049,7 +1049,7 @@ function beep(freq,dur,vol){
     osc.stop(audioCtx.currentTime+dur);
   }catch(e){}
 }
-function playTick(){ beep(900,0.12,0.55); if(navigator.vibrate) navigator.vibrate(60); }
+function playTick(){ beep(900,0.15,1.0); if(navigator.vibrate) navigator.vibrate(100); }
 function playEndSound(){
   beep(660,0.16,0.3);
   setTimeout(()=>beep(990,0.28,0.3),170);
