@@ -350,9 +350,13 @@
     font-size:13px; font-weight:800; color:var(--accent);
   }
   .ex-card-head .field{flex:1; margin-bottom:0; position:relative;}
-  .ex-card-actions{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;}
-  .ex-card-actions .icon-btn{width:36px; height:36px;}
+  .ex-card-actions{display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);}
+  .ex-card-actions .icon-btn{width:38px; height:38px; border-radius:10px; font-size:15px;}
   .ex-card-actions .icon-btn svg{width:16px; height:16px;}
+  .ex-card-actions .icon-btn.bilateral-active{
+    background:rgba(255,107,26,0.18); border-color:var(--accent); color:var(--accent);
+    font-size:17px;
+  }
 
   .suggest-list{
     position:absolute; top:calc(100% + 4px); right:0; left:0; z-index:40;
@@ -503,6 +507,19 @@
     padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px;
   }
   .ex-preview-name{ font-weight:700; font-size:15px; flex:1; }
+
+  /* Inline preview inside ex-card */
+  .ex-preview-btn{ font-size:18px; flex-shrink:0; }
+  .ex-inline-preview{
+    margin: 0 0 10px; border-radius:var(--radius-sm); overflow:hidden;
+    border:1px solid var(--border); animation:fadeIn .2s ease;
+  }
+  .ex-inline-img{ width:100%; aspect-ratio:16/9; object-fit:cover; display:block; }
+  .ex-inline-none{
+    padding:18px; text-align:center; color:var(--text-dim);
+    font-size:14px; background:rgba(255,255,255,0.03);
+  }
+  .icon-btn.active{ color:var(--accent); }
 
   /* Side badge in workout session */
   .side-badge{
@@ -1077,6 +1094,7 @@ let state = {
   plans:[],
   editorDraft:null,
   advOpen:new Set(),
+  previewOpen: null, // index of ex card with open preview
   session:null,
   modal:null // {title, body, confirmLabel, danger, onConfirm}
 };
@@ -1322,6 +1340,13 @@ function renderEditor(){
           <div class="suggest-list" id="suggest-${i}"></div>
         </div>
       </div>
+      ${state.previewOpen === i ? (() => {
+        const imgData = findExerciseImage(ex.name);
+        if(!imgData){
+          return `<div class="ex-inline-preview"><div class="ex-inline-none">📷 אין תמונה במאגר עבור תרגיל זה</div></div>`;
+        }
+        return `<div class="ex-inline-preview"><img src="${imgData.a}" alt="${escapeHtml(ex.name)}" class="ex-inline-img" id="prev-img-${i}"><div class="ex-inline-none" id="prev-none-${i}" style="display:none">📷 אין תמונה במאגר</div><script>document.getElementById('prev-img-${i}').onerror=function(){this.style.display='none';document.getElementById('prev-none-${i}').style.display='flex';};<\/script></div>`;
+      })() : ''}
       <div class="field-row">
         <div class="field">
           <label>סטים</label>
@@ -1360,19 +1385,11 @@ function renderEditor(){
             <input type="number" inputmode="numeric" min="0" placeholder="${escapeHtml(d.defaultRestExercise)} (כללי)" value="${escapeHtml(ex.restExercise)}" data-bind="ex.restExercise" data-index="${i}">
           </div>
         </div>
-        <div class="field-row" style="margin-top:8px">
-          <div class="field" style="flex:1">
-            <label>תרגיל דו-צדדי (ימין + שמאל)</label>
-            <button type="button" class="bilateral-toggle ${ex.bilateral?'active':''}" data-action="toggle-bilateral" data-index="${i}">
-              <span style="font-size:17px">⇄</span>
-              <span>${ex.bilateral ? 'כן — כל סט מחולק לצד ימין ושמאל' : 'לא — תרגיל רגיל'}</span>
-            </button>
-          </div>
-        </div>
       </div>` : ''}
       <div class="ex-card-actions">
         <button class="icon-btn" data-action="toggle-adv" data-index="${i}" aria-label="הגדרות מנוחה">${icon('layers')}</button>
-        ${ex.name ? `<button class="icon-btn" data-action="preview-ex" data-index="${i}" aria-label="תצוגה מקדימה">👁</button>` : ''}
+        ${ex.name ? `<button class="icon-btn" data-action="preview-ex" data-index="${i}" aria-label="תצוגה מקדימה" title="הצג תמונה">👁</button>` : ''}
+        <button class="icon-btn ${ex.bilateral?'bilateral-active':''}" data-action="toggle-bilateral" data-index="${i}" aria-label="תרגיל דו-צדדי" title="${ex.bilateral?'דו-צדדי (לחץ לביטול)':'חד-צדדי (לחץ לדו-צדדי)'}">⇄</button>
         <button class="icon-btn" data-action="move-up" data-index="${i}" aria-label="הזז למעלה" ${i===0?'disabled':''}>${icon('up')}</button>
         <button class="icon-btn" data-action="move-down" data-index="${i}" aria-label="הזז למטה" ${i===d.exercises.length-1?'disabled':''}>${icon('down')}</button>
         <button class="icon-btn danger" data-action="remove-ex" data-index="${i}" aria-label="מחיקת תרגיל" style="margin-right:auto">${icon('trash')}</button>
@@ -1948,6 +1965,7 @@ function adjustRest(delta){
 function openEditor(plan){
   state.editorDraft = plan ? JSON.parse(JSON.stringify(plan)) : defaultPlan();
   state.advOpen = new Set();
+  state.previewOpen = null;
   state.screen='editor';
   render();
 }
@@ -1956,6 +1974,8 @@ function setBind(path, index, value){
   if(path.startsWith('ex.')){
     const key = path.slice(3);
     d.exercises[index][key] = value;
+    // Close preview when name changes
+    if(key === 'name') state.previewOpen = null;
   }else{
     d[path] = value;
   }
@@ -2039,29 +2059,10 @@ document.body.addEventListener('click', async (e)=>{
       state.editorDraft.exercises[index].bilateral = !state.editorDraft.exercises[index].bilateral;
       render();
       break;
-    case 'preview-ex': {
-      const exName = state.editorDraft.exercises[index].name;
-      const imgData = findExerciseImage(exName);
-      // Build overlay and inject into app
-      const overlay = document.createElement('div');
-      overlay.className = 'ex-preview-overlay';
-      overlay.innerHTML = `
-        <div class="ex-preview-box">
-          ${imgData
-            ? `<img class="ex-preview-img" src="${imgData.a}" alt="${escapeHtml(exName)}" onerror="this.outerHTML='<div class=\\"ex-preview-none\\"><span>📷</span>אין תמונה במאגר</div>'">`
-            : `<div class="ex-preview-none"><span>📷</span>אין תמונה במאגר עבור תרגיל זה</div>`
-          }
-          <div class="ex-preview-footer">
-            <div class="ex-preview-name">${escapeHtml(exName)}</div>
-            <button class="btn" data-action="close-preview">סגירה</button>
-          </div>
-        </div>`;
-      overlay.addEventListener('click', (ev) => {
-        if(ev.target === overlay || ev.target.dataset.action === 'close-preview') overlay.remove();
-      });
-      document.getElementById('app').appendChild(overlay);
+    case 'preview-ex':
+      state.previewOpen = (state.previewOpen === index) ? null : index;
+      render();
       break;
-    }
     case 'close-preview':
       document.querySelector('.ex-preview-overlay')?.remove();
       break;
