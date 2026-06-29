@@ -99,7 +99,6 @@
 
   /* Glass topbar on inner screens */
   .screen-editor > .topbar,
-  .screen-session .session-head .topbar,
   .screen-done > .topbar {
     background:rgba(13,15,18,0.55);
     backdrop-filter:var(--glass);
@@ -108,6 +107,19 @@
     padding:10px 12px;
     border:1px solid var(--border-bright);
     margin-bottom:16px;
+  }
+  /* Session topbar - solid black strip */
+  .screen-session .session-head {
+    background:#0d0f12;
+    margin:-18px -18px 16px;
+    padding:12px 14px 12px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+  }
+  .screen-session .session-head .topbar {
+    background:transparent;
+    border:none;
+    padding:0;
+    margin-bottom:0;
   }
 
   .icon-btn{
@@ -401,17 +413,6 @@
   .next-up{font-size:13px; color:var(--text-dim);}
   .next-up b{color:var(--text);}
 
-  .next-ex-preview{position:relative; max-width:220px; aspect-ratio:4/3;}
-  .next-ex-label{
-    position:absolute; bottom:0; left:0; right:0;
-    background:rgba(13,15,18,0.82);
-    color:var(--accent-rest);
-    font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
-    text-align:center; padding:5px 0;
-    backdrop-filter:blur(6px);
-    -webkit-backdrop-filter:blur(6px);
-  }
-
   .ring-wrap{position:relative; width:248px; height:248px; margin:6px 0;}
   .ring-wrap svg{width:100%; height:100%; transform:rotate(-90deg);}
   .ring-track{fill:none; stroke:rgba(255,255,255,0.08); stroke-width:10;}
@@ -431,8 +432,18 @@
     position:sticky; bottom:0; padding-top:16px; margin-top:auto;
     background:linear-gradient(to top, rgba(13,15,18,1) 65%, transparent);
   }
-  .rest-adjust{display:flex; gap:10px; margin-bottom:10px;}
-  .rest-adjust .btn{flex:1;}
+  .ring-row{display:flex; align-items:center; justify-content:center; gap:14px;}
+  .ring-adj-btn{
+    appearance:none; border:none; cursor:pointer;
+    font-family:'Roboto Mono',monospace; font-weight:700; font-size:14px;
+    width:52px; height:52px; border-radius:50%;
+    color:var(--text-dim);
+    background:rgba(255,255,255,0.07);
+    border:1px solid var(--border);
+    transition:transform .1s ease, background .15s ease;
+    flex:none;
+  }
+  .ring-adj-btn:active{transform:scale(.90); background:rgba(255,255,255,0.14); color:var(--text);}
 
   .wake-badge{
     display:flex; align-items:center; gap:6px; justify-content:center;
@@ -922,6 +933,9 @@ function setupRadio(){
   function setBtnState(cls){
     btn.classList.remove('playing','loading');
     if(cls) btn.classList.add(cls);
+    // sync proxy button in session topbar
+    const proxy = document.getElementById('session-radio-proxy');
+    if(proxy) proxy.style.color = cls==='playing' ? 'var(--accent)' : '';
   }
 
   btn.addEventListener('click', ()=>{
@@ -985,6 +999,14 @@ function render(){
   const bgIdx = Math.floor(Date.now()/30000) % GYM_PHOTOS.length;
   const bgHtml = `<div id="app-bg"><img src="${GYM_PHOTOS[bgIdx]}" alt="" onload="this.classList.add('loaded')"></div>`;
   app.innerHTML = bgHtml + html;
+  // Hide floating radio during session (proxy button is in topbar instead)
+  const floatingRadio = document.getElementById('radio-widget');
+  if(floatingRadio) floatingRadio.style.display = state.screen==='session' ? 'none' : '';
+  // Sync proxy radio button playing state
+  if(state.screen==='session'){
+    const proxy = document.getElementById('session-radio-proxy');
+    if(proxy && floatingRadio) proxy.style.color = floatingRadio.classList.contains('playing') ? 'var(--accent)' : '';
+  }
   if(state.screen==='session') startTickAnimation();
 }
 
@@ -1202,18 +1224,18 @@ function renderSession(){
       <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
       <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b></div>
     </div>
-    <div class="ring-wrap">
-      ${renderRingSvg()}
-      <div class="ring-center">
-        <div class="ring-time mono" id="ring-time">${fmtTime(s.secondsLeft)}</div>
-        <div class="ring-phase active">ביצוע התרגיל</div>
+    <div class="ring-row">
+      <button class="ring-adj-btn" data-action="adjust-rest" data-delta="-15">−15</button>
+      <div class="ring-wrap">
+        ${renderRingSvg()}
+        <div class="ring-center">
+          <div class="ring-time mono" id="ring-time">${fmtTime(s.secondsLeft)}</div>
+          <div class="ring-phase active">ביצוע התרגיל</div>
+        </div>
       </div>
+      <button class="ring-adj-btn" data-action="adjust-rest" data-delta="15">+15</button>
     </div>
     <div class="session-actions">
-      <div class="rest-adjust">
-        <button class="btn" data-action="adjust-rest" data-delta="-15">15-</button>
-        <button class="btn" data-action="adjust-rest" data-delta="15">15+</button>
-      </div>
       <button class="btn btn-primary btn-block btn-lg" data-action="finish-set">${icon('check')}<span>סיימתי מוקדם</span></button>
       <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex" style="margin-top:10px">${icon('skip')}<span>דילוג על התרגיל</span></button>
     </div>`;
@@ -1227,31 +1249,20 @@ function renderSession(){
     }else if(!isExRest){
       nextLine = `<div class="next-up">התרגיל הנוכחי: <b>${escapeHtml(ex.name||'תרגיל')}</b> &middot; סט הבא ${s.setIndex} מתוך ${ex.sets} &middot; ${escapeHtml(exTargetLabel(ex))}</div>`;
     }
-    // Show next exercise image during inter-exercise rest
-    const previewEx = isExRest ? nextEx : null;
-    const previewImgs = previewEx && previewEx._img;
-    const nextImageBlock = previewImgs
-      ? `<div class="ex-image-wrap next-ex-preview">
-          <img class="frame-a" src="${previewImgs.a}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=''">
-          <img class="frame-b" src="${previewImgs.b}" alt="" loading="lazy" onerror="this.style.display='none'; var a=this.previousElementSibling; if(a) a.classList.remove('frame-a');">
-          <div class="next-ex-label">התרגיל הבא</div>
-        </div>`
-      : '';
     main = `
-    ${nextImageBlock}
-    <div class="ring-wrap">
-      ${renderRingSvg()}
-      <div class="ring-center">
-        <div class="ring-time mono" id="ring-time">${fmtTime(s.secondsLeft)}</div>
-        <div class="ring-phase ${phaseClass}">${phaseLabel}</div>
+    <div class="ring-row">
+      <button class="ring-adj-btn" data-action="adjust-rest" data-delta="-15">−15</button>
+      <div class="ring-wrap">
+        ${renderRingSvg()}
+        <div class="ring-center">
+          <div class="ring-time mono" id="ring-time">${fmtTime(s.secondsLeft)}</div>
+          <div class="ring-phase ${phaseClass}">${phaseLabel}</div>
+        </div>
       </div>
+      <button class="ring-adj-btn" data-action="adjust-rest" data-delta="15">+15</button>
     </div>
     ${nextLine}
     <div class="session-actions">
-      <div class="rest-adjust">
-        <button class="btn" data-action="adjust-rest" data-delta="-15">15-</button>
-        <button class="btn" data-action="adjust-rest" data-delta="15">15+</button>
-      </div>
       <button class="btn btn-rest btn-block btn-lg" data-action="skip-rest">${icon('skip')}<span>דילוג על המנוחה</span></button>
     </div>`;
   }
@@ -1267,7 +1278,7 @@ function renderSession(){
           <div class="plan-name">${escapeHtml(plan.name)}</div>
           <div class="progress-text">תרגיל ${s.exIndex+1} מתוך ${plan.exercises.length}</div>
         </div>
-        <div style="width:42px"></div>
+        <button class="icon-btn session-radio-btn" id="session-radio-proxy" aria-label="גלגלצ" onclick="document.getElementById('radio-widget').click()">${icon('radio')}</button>
       </div>
       <div class="segments">${segs}</div>
     </div>
