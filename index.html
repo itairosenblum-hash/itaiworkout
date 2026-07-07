@@ -271,7 +271,11 @@
     display:flex; flex-direction:column; gap:14px;
     margin-bottom:14px;
   }
-  .home-fab{
+  .home-fab{display:flex; gap:10px;}
+  .home-fab > .btn-primary{flex:1;}
+  .btn-icon-only{width:52px; height:52px; flex-shrink:0; padding:0; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-sm);}
+  .btn-icon-only svg{width:22px; height:22px;}
+  ._home-fab{
     margin-top:4px;
   }
 
@@ -694,8 +698,6 @@
   .done-dur{color:var(--text-dim); font-size:14px;}
   .done-dur b{color:var(--text);}
   /* History screen */
-  .home-header-row{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
-  .history-btn{margin-top:4px;}
   .hist-body{position:relative; z-index:1;}
   .hist-stats{display:flex; gap:10px; margin-bottom:16px;}
   .hist-stat{
@@ -723,6 +725,9 @@
   .hist-name{font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .hist-meta{font-size:12px; color:var(--text-dim); margin-top:2px;}
   .hist-dur{font-size:15px; font-weight:800; color:var(--accent-rest); flex-shrink:0;}
+  .hist-del-btn{width:32px; height:32px; flex-shrink:0; opacity:0.4; margin-right:-4px;}
+  .hist-del-btn:active{opacity:1;}
+  .hist-del-btn svg{width:16px; height:16px;}
   .hist-more{text-align:center; font-size:12px; color:var(--text-dim); padding:8px 0 16px;}
   /* Last workout on plan card */
   .plan-last{
@@ -1511,17 +1516,13 @@ function renderHome(){
 
   return `<div class="screen screen-home">
     <div class="home-header">
-      <div class="home-header-row">
-        <div>
-          <div class="greeting">זמן להתאמן</div>
-          <h1>האימון <span>שלי</span></h1>
-        </div>
-        <button class="icon-btn history-btn" data-action="open-history" aria-label="היסטוריית אימונים">${icon('history')}</button>
-      </div>
+      <div class="greeting">זמן להתאמן</div>
+      <h1>האימון <span>שלי</span></h1>
     </div>
     <div class="home-body">${body}</div>
     <div class="home-fab">
       <button class="btn btn-primary btn-block" data-action="new-plan">${icon('plus')}<span>תוכנית חדשה</span></button>
+      <button class="btn btn-ghost btn-icon-only" data-action="open-history" aria-label="היסטוריית אימונים">${icon('history')}</button>
     </div>
   </div>`;
 }
@@ -1551,8 +1552,9 @@ function renderHistory(){
       <div class="hist-stat"><b>${weekMins}</b><span>דק' השבוע</span></div>
       <div class="hist-stat"><b>${total}</b><span>סה"כ אימונים</span></div>
     </div>`;
-    const rows = all.slice(0, 50).map(e=>{
+    const rows = all.slice(0, 50).map((e,i)=>{
       const skippedNote = e.skipped ? ` &middot; דילגת על ${e.skipped}` : '';
+      const realIdx = loadHistory().length - 1 - i;
       return `
       <div class="hist-item">
         <div class="hist-icon">${icon('dumbbell')}</div>
@@ -1561,6 +1563,7 @@ function renderHistory(){
           <div class="hist-meta">${daysAgoLabel(e.d)} &middot; ${e.ex||0} תרגילים${skippedNote}</div>
         </div>
         <div class="hist-dur mono">${fmtTime(e.dur||0)}</div>
+        <button class="hist-del-btn icon-btn danger" data-action="delete-history" data-hidx="${realIdx}" aria-label="מחיקת אימון">${icon('trash')}</button>
       </div>`;
     }).join('');
     body = stats + rows + (total>50 ? `<div class="hist-more">מוצגים 50 האימונים האחרונים מתוך ${total}</div>` : '');
@@ -2323,6 +2326,25 @@ document.body.addEventListener('click', async (e)=>{
       state.screen='home';
       render();
       break;
+    case 'delete-history': {
+      const hidx = parseInt(t.dataset.hidx, 10);
+      state.modal = {
+        title: 'מחיקת אימון מהיומן',
+        body: 'האם למחוק את הרשומה? הפעולה אינה ניתנת לביטול.',
+        confirmLabel: 'מחיקה',
+        danger: true,
+        onConfirm: ()=>{
+          try{
+            const h = loadHistory();
+            h.splice(hidx, 1);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+          }catch(e){}
+          render();
+        }
+      };
+      render();
+      break;
+    }
     case 'load-example':
       state.plans.push(exampleWorkout());
       await savePlans(state.plans);
