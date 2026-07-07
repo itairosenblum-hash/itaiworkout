@@ -668,6 +668,35 @@
   }
   .radio-widget.playing .radio-dot{display:block; border-color:transparent; animation:radioDotPulse 1.4s ease-in-out infinite;}
   @keyframes radioDotPulse{0%,100%{opacity:1; transform:scale(1);} 50%{opacity:.35; transform:scale(1.3);}}
+  /* Weight tracking (session) */
+  .weight-block{margin-top:2px;}
+  .weight-row{display:flex; align-items:center; justify-content:center; gap:14px;}
+  .w-btn{
+    min-width:58px; height:38px; border-radius:12px;
+    border:1px solid var(--border-bright);
+    background:var(--surface-2);
+    color:var(--text); font-family:inherit; font-size:14px; font-weight:800;
+    cursor:pointer;
+  }
+  .w-btn:active{
+    background:rgba(255,107,26,0.15);
+    border-color:var(--accent); color:var(--accent);
+  }
+  .w-val{
+    display:flex; align-items:baseline; justify-content:center; gap:4px;
+    min-width:78px; font-size:24px; font-weight:800; color:var(--text);
+  }
+  .w-val small{font-size:12px; font-weight:700; color:var(--text-dim);}
+  .w-prev{text-align:center; font-size:12px; color:var(--text-dim); margin-top:4px;}
+  /* Done screen duration */
+  .done-dur{color:var(--text-dim); font-size:14px;}
+  .done-dur b{color:var(--text);}
+  /* Last workout on plan card */
+  .plan-last{
+    display:flex; align-items:center; gap:5px;
+    font-size:12px; font-weight:600; color:var(--accent-rest); margin-top:6px;
+  }
+  .plan-last svg{width:12px; height:12px; flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -1082,39 +1111,116 @@ function exTargetLabel(ex){
    ========================================================= */
 const GS_URL = 'https://script.google.com/macros/s/AKfycby5VqHDNm6AA7dIPxnFJ5i7FKsHm41jbq0Qxo0Uzc-zYOU0WATyV-4vue_eH-wSBiVIkA/exec';
 const LOCAL_STORAGE_KEY = 'workoutAppPlans_v1';
+const PENDING_SYNC_KEY = 'workoutAppPendingSync_v1';
+const HISTORY_KEY = 'workoutAppHistory_v1';
+const WEIGHTS_KEY = 'workoutAppWeights_v1';
 
-async function loadPlans(){
+function loadLocalPlans(){
+  try{
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if(raw){ const d = JSON.parse(raw); if(Array.isArray(d)) return d; }
+  }catch(e){}
+  return [];
+}
+
+// GET מ-Sheets. מחזיר מערך או null אם נכשל.
+async function fetchPlansFromSheets(){
   try{
     const res = await fetch(GS_URL, {method:'GET', cache:'no-store'});
     if(res.ok){
-      const text = await res.text().then(t=>t.trim());
+      const text = (await res.text()).trim();
       const data = JSON.parse(text);
-      if(Array.isArray(data)){
-        // Sheets הוא המקור האמיתי — תמיד נאמין לו, גם אם ריק
-        try{ localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data)); }catch(e){}
-        return data;
-      }
+      if(Array.isArray(data)) return data;
     }
-  }catch(e){ console.warn('Google Sheets load failed, using localStorage', e); }
-  // fallback רק אם Sheets לא זמין (אין אינטרנט וכו')
-  try{
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  return [];
+  }catch(e){ console.warn('Google Sheets load failed', e); }
+  return null;
+}
+
+function postPlansToSheets(json){
+  // no-cors: התגובה אטומה — "הצלחה" = הבקשה יצאה לרשת
+  return fetch(GS_URL, {
+    method:'POST',
+    body: json,
+    headers:{'Content-Type':'text/plain'},
+    mode:'no-cors'
+  });
 }
 
 async function savePlans(plans){
   const json = JSON.stringify(plans);
   try{ localStorage.setItem(LOCAL_STORAGE_KEY, json); }catch(e){}
+  try{ localStorage.setItem(PENDING_SYNC_KEY, '1'); }catch(e){}
   try{
-    await fetch(GS_URL, {
-      method:'POST',
-      body: json,
-      headers:{'Content-Type':'text/plain'},
-      mode:'no-cors'
-    });
-  }catch(e){ console.warn('Google Sheets save failed', e); }
+    await postPlansToSheets(json);
+    try{ localStorage.removeItem(PENDING_SYNC_KEY); }catch(e){}
+  }catch(e){ console.warn('Google Sheets save failed — will retry when online', e); }
+}
+
+// שליחה חוזרת של שינויים שלא הסתנכרנו (נשמרו אופליין וכו').
+// מחזירה true אם נדחפו שינויים לשרת עכשיו.
+async function retryPendingSync(){
+  try{
+    if(localStorage.getItem(PENDING_SYNC_KEY) !== '1') return false;
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if(!raw){ localStorage.removeItem(PENDING_SYNC_KEY); return false; }
+    await postPlansToSheets(raw);
+    localStorage.removeItem(PENDING_SYNC_KEY);
+    return true;
+  }catch(e){ /* עדיין אופליין — ננסה שוב בהזדמנות הבאה */ }
+  return false;
+}
+window.addEventListener('online', ()=>{ retryPendingSync(); });
+
+/* ---- היסטוריית אימונים (localStorage) ---- */
+function loadHistory(){
+  try{
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if(raw){ const d = JSON.parse(raw); if(Array.isArray(d)) return d; }
+  }catch(e){}
+  return [];
+}
+function addHistoryEntry(entry){
+  const h = loadHistory();
+  h.push(entry);
+  while(h.length > 200) h.shift();
+  try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }catch(e){}
+}
+function lastWorkoutFor(planId){
+  const h = loadHistory();
+  for(let i=h.length-1; i>=0; i--){ if(h[i].id===planId) return h[i]; }
+  return null;
+}
+function daysAgoLabel(iso){
+  if(!iso) return '';
+  const then = new Date(iso);
+  if(isNaN(then)) return '';
+  const sod = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = Math.round((sod(new Date()) - sod(then)) / 86400000);
+  if(diff<=0) return 'היום';
+  if(diff===1) return 'אתמול';
+  if(diff<30) return 'לפני '+diff+' ימים';
+  return then.toLocaleDateString('he-IL');
+}
+
+/* ---- מעקב משקלים לפי תרגיל ---- */
+function weightKey(name){ return (name||'').trim().toLowerCase(); }
+function loadWeights(){
+  try{
+    const raw = localStorage.getItem(WEIGHTS_KEY);
+    if(raw){ const d = JSON.parse(raw); if(d && typeof d==='object' && !Array.isArray(d)) return d; }
+  }catch(e){}
+  return {};
+}
+function saveWeight(name, w){
+  const key = weightKey(name);
+  if(!key) return;
+  const all = loadWeights();
+  all[key] = { w: w, d: new Date().toISOString() };
+  try{ localStorage.setItem(WEIGHTS_KEY, JSON.stringify(all)); }catch(e){}
+}
+function fmtKg(w){
+  const n = Math.round(Number(w)*10)/10;
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
 /* =========================================================
@@ -1211,8 +1317,10 @@ function releaseWakeLock(){
   }
 }
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState==='visible' && state.screen==='session' && state.session && !state.session.wakeLock){
-    requestWakeLock();
+  if(document.visibilityState==='visible' && state.screen==='session' && state.session){
+    if(!state.session.wakeLock) requestWakeLock();
+    // סנכרון מיידי של הספירה אחרי חזרה מהרקע
+    syncCountdown();
   }
 });
 
@@ -1284,6 +1392,15 @@ function render(){
   }
   const bgHtml = `<div id="app-bg"><img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80" alt=""><div id="app-bg-overlay"></div></div>`;
   app.innerHTML = bgHtml + html;
+  // fallback לתמונות התצוגה המקדימה בעורך (script שמוזרק ב-innerHTML לא רץ,
+  // ולכן מחברים onerror כאן אחרי הרינדור)
+  app.querySelectorAll('img.ex-inline-img').forEach(img=>{
+    img.onerror = function(){
+      this.style.display='none';
+      const fb = this.nextElementSibling;
+      if(fb) fb.style.display='flex';
+    };
+  });
   if(state.modal){
     let mo = document.getElementById('modal-root');
     if(!mo){ mo = document.createElement('div'); mo.id='modal-root'; document.body.appendChild(mo); }
@@ -1328,6 +1445,7 @@ function renderHome(){
       }, 0);
       const estMins = Math.max(1, Math.round(estSecs/60));
       const estLabel = estMins < 60 ? estMins + " דק'" : Math.floor(estMins/60) + ":" + String(estMins%60).padStart(2,"0") + " ש'";
+      const last = lastWorkoutFor(p.id);
       return `
       <div class="plan-card">
         <div class="plan-card-bg" style="background-image:url('${photo}')"></div>
@@ -1342,6 +1460,7 @@ function renderHome(){
                 <span>${icon('flag')} ${totalSets} סטים</span>
                 <span>${icon('clock')} ~${estLabel}</span>
               </div>
+              ${last ? `<div class="plan-last">${icon('check')} אימון אחרון: ${daysAgoLabel(last.d)}</div>` : ''}
             </div>
           </div>
           <div class="plan-card-actions">
@@ -1385,7 +1504,7 @@ function renderEditor(){
         if(!imgData){
           return `<div class="ex-inline-preview"><div class="ex-inline-none">📷 אין תמונה במאגר עבור תרגיל זה</div></div>`;
         }
-        return `<div class="ex-inline-preview"><img src="${imgData.a}" alt="${escapeHtml(ex.name)}" class="ex-inline-img" id="prev-img-${i}"><div class="ex-inline-none" id="prev-none-${i}" style="display:none">📷 אין תמונה במאגר</div><script>document.getElementById('prev-img-${i}').onerror=function(){this.style.display='none';document.getElementById('prev-none-${i}').style.display='flex';};<\/script></div>`;
+        return `<div class="ex-inline-preview"><img src="${imgData.a}" alt="${escapeHtml(ex.name)}" class="ex-inline-img"><div class="ex-inline-none" style="display:none">📷 אין תמונה במאגר</div></div>`;
       })() : ''}
       <div class="field-row">
         <div class="field">
@@ -1676,6 +1795,21 @@ function renderSession(){
                       : ex.bilateral && s.sidePhase==='left'  ? 'סיימתי צד שמאל'
                       : 'סיימתי';
 
+    let weightBlock = '';
+    if(exUsesWeight(ex)){
+      const curW = currentWeightFor(ex);
+      const prevW = s.prevWeights[weightKey(ex.name)];
+      weightBlock = `
+      <div class="weight-block">
+        <div class="weight-row">
+          <button class="w-btn" data-action="weight-adj" data-delta="2.5" aria-label="הוספת 2.5 קילו">+2.5</button>
+          <div class="w-val"><span id="w-val" class="mono">${fmtKg(curW)}</span><small>ק"ג</small></div>
+          <button class="w-btn" data-action="weight-adj" data-delta="-2.5" aria-label="הפחתת 2.5 קילו">−2.5</button>
+        </div>
+        ${prevW ? `<div class="w-prev">בפעם הקודמת: ${fmtKg(prevW.w)} ק"ג</div>` : ''}
+      </div>`;
+    }
+
     main = `
     <div class="session-main-content">
       <div class="ex-media-row">
@@ -1687,6 +1821,7 @@ function renderSession(){
         ${sideBadge}
         <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
       </div>
+      ${weightBlock}
       ${tip ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(tip)}</div></div>` : ''}
     </div>
     <div class="session-actions">
@@ -1794,11 +1929,13 @@ function renderSession(){
 }
 
 function renderDone(){
+  const dur = state.session && state.session.durationSec!=null ? fmtTime(state.session.durationSec) : null;
   return `<div class="screen">
     <div class="done-screen">
       <div class="done-glyph">${icon('check')}</div>
       <h2>כל הכבוד, סיימת את האימון!</h2>
       <p>${escapeHtml(state.session?state.session.plan.name:'')}</p>
+      ${dur ? `<p class="done-dur">משך האימון: <b class="mono">${dur}</b></p>` : ''}
       <button class="btn btn-primary btn-lg" data-action="finish-done">חזרה לדף הבית</button>
     </div>
   </div>`;
@@ -1855,7 +1992,7 @@ function startSession(plan){
     const imgData = findExerciseImage(e.name);
     const dbEntry = findExerciseEntry(e.name);
     const muscles = dbEntry ? dbEntry.m : [];
-    return {...e, _img: imgData, _muscles: muscles};
+    return {...e, _img: imgData, _muscles: muscles, _equip: dbEntry ? dbEntry.e : 'unknown'};
   });
   state.session = {
     plan: {...plan, exercises},
@@ -1865,9 +2002,13 @@ function startSession(plan){
     sidePhase: null,  // 'right' | 'left' | null
     secondsLeft:0,
     totalSeconds:0,
+    endTime:null,
     timerId:null,
     completeFn:null,
     wakeLock:null,
+    skippedCount:0,
+    prevWeights: loadWeights(),   // snapshot מלפני האימון — עבור "בפעם הקודמת"
+    sessionWeights: {},           // ערכים שנבחרו במהלך האימון הנוכחי
     startTime: Date.now()
   };
   state.screen='session';
@@ -1877,6 +2018,16 @@ function startSession(plan){
 }
 
 function currentExercise(){ return state.session.plan.exercises[state.session.exIndex]; }
+// תרגיל עם ציוד (משקולות/מכונה/כבלים וכו') — מציגים בו את בורר המשקל.
+// 'body only' או ללא ציוד (מתיחות) — לא רלוונטי.
+function exUsesWeight(ex){ return ex._equip !== 'body only' && ex._equip !== null; }
+function currentWeightFor(ex){
+  const s = state.session;
+  const key = weightKey(ex.name);
+  if(s.sessionWeights[key] != null) return s.sessionWeights[key];
+  const prev = s.prevWeights[key];
+  return prev ? prev.w : 0;
+}
 function getRestSet(ex,plan){ return (ex.restSet!==''&&ex.restSet!=null) ? clampNum(ex.restSet,0,0) : clampNum(plan.defaultRestSet,60,0); }
 function getRestExercise(ex,plan){ return (ex.restExercise!==''&&ex.restExercise!=null) ? clampNum(ex.restExercise,0,0) : clampNum(plan.defaultRestExercise,90,0); }
 
@@ -1894,6 +2045,7 @@ function enterActivePhase(){
     startActiveTimer(getTimeSeconds(ex));
   }else{
     s.completeFn = null;
+    s.endTime = null;
     render();
     // keep elapsed timer ticking during reps phase
     clearInterval(s.elapsedTimer);
@@ -1921,6 +2073,12 @@ function finishSet(){
   // Done with full set (non-bilateral, or just finished left side)
   if(ex.bilateral) s.sidePhase = 'right'; // reset for next set
 
+  // שמירת משקל — רק אם עודכן במהלך האימון הנוכחי
+  const wkey = weightKey(ex.name);
+  if(s.sessionWeights && s.sessionWeights[wkey] != null){
+    saveWeight(ex.name, s.sessionWeights[wkey]);
+  }
+
   if(s.setIndex < ex.sets){
     s.setIndex++;
     startRest('restSet', getRestSet(ex,plan));
@@ -1935,6 +2093,7 @@ function finishSet(){
 function skipExercise(){
   const s = state.session;
   clearInterval(s.timerId);
+  s.skippedCount = (s.skippedCount||0)+1;
   const plan = s.plan;
   if(s.exIndex < plan.exercises.length-1){
     startRest('restExercise', getRestExercise(currentExercise(),plan));
@@ -1943,8 +2102,20 @@ function skipExercise(){
   }
 }
 function finishWorkout(){
-  clearInterval(state.session.timerId);
+  const s = state.session;
+  clearInterval(s.timerId);
+  clearInterval(s.elapsedTimer);
+  s.endTime = null;
   releaseWakeLock();
+  s.durationSec = Math.floor((Date.now()-s.startTime)/1000);
+  addHistoryEntry({
+    d: new Date().toISOString(),
+    id: s.plan.id,
+    name: s.plan.name,
+    dur: s.durationSec,
+    ex: s.plan.exercises.length,
+    skipped: s.skippedCount||0
+  });
   state.screen='done';
   render();
 }
@@ -1953,37 +2124,46 @@ function startRest(phase, seconds){
   const s = state.session;
   clearInterval(s.elapsedTimer);
   s.phase = phase;
-  s.totalSeconds = Math.max(1, seconds);
-  s.secondsLeft = Math.max(0, seconds);
   s.completeFn = endRest;
-  render();
-  if(s.secondsLeft<=0){ endRest(); return; }
-  runTicker();
+  startCountdown(seconds);
 }
 // Countdown for a time-based exercise set (e.g. plank, wall sit).
 function startActiveTimer(seconds){
   const s = state.session;
+  s.completeFn = finishSet;
+  startCountdown(seconds);
+}
+// ספירה לאחור מבוססת-שעון (endTime): לא נתקעת כשהאפליקציה עוברת לרקע,
+// כי בכל tick מחשבים את הזמן שנותר מ-Date.now() במקום להוריד מונה.
+function startCountdown(seconds){
+  const s = state.session;
   s.totalSeconds = Math.max(1, seconds);
   s.secondsLeft = Math.max(0, seconds);
-  s.completeFn = finishSet;
+  s.endTime = Date.now() + s.secondsLeft*1000;
   render();
-  if(s.secondsLeft<=0){ finishSet(); return; }
+  if(s.secondsLeft<=0){ s.endTime=null; (s.completeFn||endRest)(); return; }
   runTicker();
 }
 function runTicker(){
   const s = state.session;
   clearInterval(s.timerId);
-  s.timerId = setInterval(()=>{
-    s.secondsLeft--;
-    if(s.secondsLeft<=0){
-      clearInterval(s.timerId);
-      playEndSound();
-      (s.completeFn||endRest)();
-    }else{
-      if(s.secondsLeft<=5) playTick();
-      updateRingDisplay();
-    }
-  },1000);
+  s.timerId = setInterval(syncCountdown, 250);
+}
+function syncCountdown(){
+  const s = state.session;
+  if(!s || !s.endTime) return;
+  const left = Math.max(0, Math.ceil((s.endTime - Date.now())/1000));
+  if(left === s.secondsLeft) return;
+  s.secondsLeft = left;
+  if(left<=0){
+    clearInterval(s.timerId);
+    s.endTime = null;
+    playEndSound();
+    (s.completeFn||endRest)();
+    return;
+  }
+  if(left<=5) playTick();
+  updateRingDisplay();
 }
 function endRest(){
   const s = state.session;
@@ -2001,10 +2181,13 @@ function skipRest(){
 }
 function adjustRest(delta){
   const s = state.session;
-  s.secondsLeft = Math.max(0, s.secondsLeft+delta);
-  s.totalSeconds = Math.max(s.totalSeconds, s.secondsLeft, 1);
+  if(!s.endTime) return;
+  s.endTime += delta*1000;
+  const left = Math.max(0, Math.ceil((s.endTime - Date.now())/1000));
+  s.secondsLeft = left;
+  s.totalSeconds = Math.max(s.totalSeconds, left, 1);
   updateRingDisplay();
-  if(s.secondsLeft<=0){ clearInterval(s.timerId); (s.completeFn||endRest)(); }
+  if(left<=0){ clearInterval(s.timerId); s.endTime=null; (s.completeFn||endRest)(); }
 }
 
 /* =========================================================
@@ -2170,6 +2353,19 @@ document.body.addEventListener('click', async (e)=>{
     case 'adjust-rest':
       adjustRest(parseInt(t.dataset.delta,10));
       break;
+    case 'weight-adj': {
+      const s = state.session;
+      if(!s) break;
+      const ex = currentExercise();
+      const key = weightKey(ex.name);
+      const cur = currentWeightFor(ex);
+      const next = Math.max(0, Math.round((cur + parseFloat(t.dataset.delta))*10)/10);
+      s.sessionWeights[key] = next;
+      // עדכון ממוקד בלי רינדור מלא — שהתמונה לא תהבהב
+      const el = document.getElementById('w-val');
+      if(el) el.textContent = fmtKg(next);
+      break;
+    }
     case 'confirm-exit':
       state.modal = {
         title:'עצירת האימון',
@@ -2178,6 +2374,7 @@ document.body.addEventListener('click', async (e)=>{
         danger:true,
         onConfirm: ()=>{
           clearInterval(state.session.timerId);
+          clearInterval(state.session.elapsedTimer);
           releaseWakeLock();
           state.session=null;
           state.screen='home';
@@ -2243,9 +2440,22 @@ app.addEventListener('focusout', (e)=>{
    Init
    ========================================================= */
 async function init(){
-  state.plans = await loadPlans();
+  // רינדור מיידי מהעותק המקומי — בלי לחכות לרשת
+  state.plans = loadLocalPlans();
   render();
   setupRadio();
+  // קודם דוחפים ל-Sheets שינויים מקומיים שממתינים, כדי שלא יידרסו
+  const justPushed = await retryPendingSync();
+  // רענון ברקע מ-Sheets — רק אם אין שינויים מקומיים בהמתנה,
+  // ולא דחפנו הרגע (GET מיידי אחרי POST עלול להחזיר גרסה ישנה ולדרוס)
+  if(!justPushed && localStorage.getItem(PENDING_SYNC_KEY) !== '1'){
+    const fresh = await fetchPlansFromSheets();
+    if(fresh && JSON.stringify(fresh) !== JSON.stringify(state.plans)){
+      state.plans = fresh;
+      try{ localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fresh)); }catch(e){}
+      if(state.screen==='home') render();
+    }
+  }
 }
 init();
 
