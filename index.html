@@ -106,7 +106,9 @@
   /* Glass topbar on inner screens */
   /* Editor screen scrolls, others are fixed */
   .screen-editor{overflow-y:auto; overflow-x:hidden;}
+  .screen-history{overflow-y:auto; overflow-x:hidden;}
   .screen-editor > .topbar,
+  .screen-history > .topbar,
   .screen-done > .topbar {
     background:rgba(13,15,18,0.55);
     backdrop-filter:var(--glass);
@@ -691,6 +693,37 @@
   /* Done screen duration */
   .done-dur{color:var(--text-dim); font-size:14px;}
   .done-dur b{color:var(--text);}
+  /* History screen */
+  .home-header-row{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
+  .history-btn{margin-top:4px;}
+  .hist-body{position:relative; z-index:1;}
+  .hist-stats{display:flex; gap:10px; margin-bottom:16px;}
+  .hist-stat{
+    flex:1; text-align:center; padding:14px 6px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    backdrop-filter:var(--glass); -webkit-backdrop-filter:var(--glass);
+  }
+  .hist-stat b{display:block; font-size:24px; font-weight:800; color:var(--accent); line-height:1.1;}
+  .hist-stat span{font-size:11px; font-weight:600; color:var(--text-dim);}
+  .hist-item{
+    display:flex; align-items:center; gap:12px;
+    padding:12px 14px; margin-bottom:10px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    backdrop-filter:var(--glass); -webkit-backdrop-filter:var(--glass);
+  }
+  .hist-icon{
+    width:38px; height:38px; border-radius:11px; flex-shrink:0;
+    background:rgba(255,107,26,0.13);
+    display:flex; align-items:center; justify-content:center; color:var(--accent);
+  }
+  .hist-icon svg{width:19px; height:19px;}
+  .hist-main{flex:1; min-width:0;}
+  .hist-name{font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .hist-meta{font-size:12px; color:var(--text-dim); margin-top:2px;}
+  .hist-dur{font-size:15px; font-weight:800; color:var(--accent-rest); flex-shrink:0;}
+  .hist-more{text-align:center; font-size:12px; color:var(--text-dim); padding:8px 0 16px;}
   /* Last workout on plan card */
   .plan-last{
     display:flex; align-items:center; gap:5px;
@@ -1074,7 +1107,8 @@ const ICONS = {
   target:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
   zap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
   radio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4"/><path d="M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2"/></svg>',
-  pause:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>'
+  pause:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>',
+  history:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><polyline points="3 4 3 9 8 9"/><polyline points="12 7 12 12 15.5 14"/></svg>'
 };
 function icon(name){return ICONS[name]||'';}
 
@@ -1386,6 +1420,7 @@ function render(){
   let html='';
   switch(state.screen){
     case 'home': html = renderHome(); break;
+    case 'history': html = renderHistory(); break;
     case 'editor': html = renderEditor(); break;
     case 'session': html = renderSession(); break;
     case 'done': html = renderDone(); break;
@@ -1476,13 +1511,67 @@ function renderHome(){
 
   return `<div class="screen screen-home">
     <div class="home-header">
-      <div class="greeting">זמן להתאמן</div>
-      <h1>האימון <span>שלי</span></h1>
+      <div class="home-header-row">
+        <div>
+          <div class="greeting">זמן להתאמן</div>
+          <h1>האימון <span>שלי</span></h1>
+        </div>
+        <button class="icon-btn history-btn" data-action="open-history" aria-label="היסטוריית אימונים">${icon('history')}</button>
+      </div>
     </div>
     <div class="home-body">${body}</div>
     <div class="home-fab">
       <button class="btn btn-primary btn-block" data-action="new-plan">${icon('plus')}<span>תוכנית חדשה</span></button>
     </div>
+  </div>`;
+}
+
+function renderHistory(){
+  const all = loadHistory().slice().reverse(); // מהחדש לישן
+  const now = new Date();
+  // תחילת השבוע — יום ראשון
+  const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+  const weekEntries = all.filter(e => { const d = new Date(e.d); return !isNaN(d) && d >= startOfWeek; });
+  const weekCount = weekEntries.length;
+  const weekMins = Math.round(weekEntries.reduce((a,e)=>a+(e.dur||0),0)/60);
+  const total = all.length;
+
+  let body;
+  if(!total){
+    body = `
+    <div class="empty-state">
+      <div class="glyph">${icon('history')}</div>
+      <h2>עוד אין אימונים מתועדים</h2>
+      <p>מהיום כל אימון שתסיים יישמר כאן אוטומטית — עם תאריך, משך ותוכנית.</p>
+    </div>`;
+  }else{
+    const stats = `
+    <div class="hist-stats">
+      <div class="hist-stat"><b>${weekCount}</b><span>אימונים השבוע</span></div>
+      <div class="hist-stat"><b>${weekMins}</b><span>דק' השבוע</span></div>
+      <div class="hist-stat"><b>${total}</b><span>סה"כ אימונים</span></div>
+    </div>`;
+    const rows = all.slice(0, 50).map(e=>{
+      const skippedNote = e.skipped ? ` &middot; דילגת על ${e.skipped}` : '';
+      return `
+      <div class="hist-item">
+        <div class="hist-icon">${icon('dumbbell')}</div>
+        <div class="hist-main">
+          <div class="hist-name">${escapeHtml(e.name||'אימון')}</div>
+          <div class="hist-meta">${daysAgoLabel(e.d)} &middot; ${e.ex||0} תרגילים${skippedNote}</div>
+        </div>
+        <div class="hist-dur mono">${fmtTime(e.dur||0)}</div>
+      </div>`;
+    }).join('');
+    body = stats + rows + (total>50 ? `<div class="hist-more">מוצגים 50 האימונים האחרונים מתוך ${total}</div>` : '');
+  }
+
+  return `<div class="screen screen-history">
+    <div class="topbar">
+      <button class="icon-btn" data-action="close-history" aria-label="חזרה">${icon('back')}</button>
+      <h1>היסטוריית אימונים</h1>
+    </div>
+    <div class="hist-body">${body}</div>
   </div>`;
 }
 
@@ -2225,6 +2314,14 @@ document.body.addEventListener('click', async (e)=>{
   switch(action){
     case 'new-plan':
       openEditor(null);
+      break;
+    case 'open-history':
+      state.screen='history';
+      render();
+      break;
+    case 'close-history':
+      state.screen='home';
+      render();
       break;
     case 'load-example':
       state.plans.push(exampleWorkout());
