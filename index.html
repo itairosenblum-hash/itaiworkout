@@ -1473,7 +1473,7 @@ function render(){
   app.innerHTML = bgHtml + html;
   // fallback לתמונות התצוגה המקדימה בעורך (script שמוזרק ב-innerHTML לא רץ,
   // ולכן מחברים onerror כאן אחרי הרינדור)
-  app.querySelectorAll('img.ex-inline-img').forEach(img=>{
+  app.querySelectorAll('img.ex-inline-img, img.preview-thumb').forEach(img=>{
     img.onerror = function(){
       this.style.display='none';
       const fb = this.nextElementSibling;
@@ -1507,7 +1507,7 @@ function renderPreviewScreen(){
   const items = p.exercises.map((ex,i)=>{
     const imgData = findExerciseImage(ex.name);
     const thumb = imgData
-      ? `<img class="preview-thumb ex-inline-img" src="${imgData.a}" alt="" loading="lazy"><div class="preview-thumb-none" style="display:none">🏋️</div>`
+      ? `<img class="preview-thumb" src="${imgData.a}" alt="" loading="lazy"><div class="preview-thumb-none" style="display:none">🏋️</div>`
       : `<div class="preview-thumb-none">🏋️</div>`;
     const work = ex.mode==='time'
       ? `${ex.sets} סטים × ${ex.timeSeconds} שנ'`
