@@ -1980,9 +1980,9 @@ function renderSession(){
       weightBlock = `
       <div class="weight-block">
         <div class="weight-row">
-          <button class="w-btn" data-action="weight-adj" data-delta="2.5" aria-label="הוספת 2.5 קילו">+2.5</button>
+          <button class="w-btn" data-action="weight-adj" data-delta="0.5" aria-label="הוספת חצי קילו">+0.5</button>
           <div class="w-val"><span id="w-val" class="mono">${fmtKg(curW)}</span><small>ק"ג</small></div>
-          <button class="w-btn" data-action="weight-adj" data-delta="-2.5" aria-label="הפחתת 2.5 קילו">−2.5</button>
+          <button class="w-btn" data-action="weight-adj" data-delta="-0.5" aria-label="הפחתת חצי קילו">−0.5</button>
         </div>
         ${prevW ? `<div class="w-prev">בפעם הקודמת: ${fmtKg(prevW.w)} ק"ג</div>` : ''}
       </div>`;
