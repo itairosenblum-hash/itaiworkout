@@ -586,6 +586,7 @@
   .side-badge.left{ background:rgba(34,211,200,0.15); color:var(--accent-rest); border:1.5px solid rgba(34,211,200,0.5); }
 
   .next-up{font-size:13px; color:var(--text-dim);}
+  .next-up-weight{color:var(--accent, #4ade80); font-weight:700; white-space:nowrap;}
   .next-up b{color:var(--text);}
 
   .ring-wrap{position:relative; width:248px; height:248px; margin:6px 0;}
@@ -2051,7 +2052,12 @@ function renderSession(){
     const phaseClass = isExRest ? 'rest-ex' : 'rest';
     let nextLine='';
     if(isExRest && nextEx){
-      nextLine = `<div class="next-up">בהמשך: <b>${escapeHtml(nextEx.name||'תרגיל')}</b> &middot; ${nextEx.sets} סטים &middot; ${escapeHtml(exTargetLabel(nextEx))}</div>`;
+      let nextW = '';
+      if(exUsesWeight(nextEx)){
+        const w = currentWeightFor(nextEx);
+        if(w > 0) nextW = ` &middot; <span class="next-up-weight">${fmtKg(w)} ק"ג</span>`;
+      }
+      nextLine = `<div class="next-up">בהמשך: <b>${escapeHtml(nextEx.name||'תרגיל')}</b> &middot; ${nextEx.sets} סטים &middot; ${escapeHtml(exTargetLabel(nextEx))}${nextW}</div>`;
     }else if(!isExRest){
       nextLine = `<div class="next-up">התרגיל הנוכחי: <b>${escapeHtml(ex.name||'תרגיל')}</b> &middot; סט הבא ${s.setIndex} מתוך ${ex.sets} &middot; ${escapeHtml(exTargetLabel(ex))}</div>`;
     }
