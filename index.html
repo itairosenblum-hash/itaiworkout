@@ -459,6 +459,9 @@
     background:linear-gradient(90deg, var(--accent), #ff4500);
     box-shadow:0 0 8px var(--accent-glow);
   }
+  .segments .seg.postponed{
+    background:repeating-linear-gradient(45deg, rgba(255,193,7,0.55) 0 4px, rgba(255,193,7,0.18) 4px 8px);
+  }
 
   .session-main{
     flex:1; display:flex; flex-direction:column; align-items:center;
@@ -732,6 +735,14 @@
   }
   .w-val small{font-size:12px; font-weight:700; color:var(--text-dim);}
   .w-prev{text-align:center; font-size:12px; color:var(--text-dim); margin-top:4px;}
+  .w-kg-sub{text-align:center; font-size:13px; font-weight:700; color:var(--text-dim); margin-top:3px;}
+  .w-kg-sub .mono, .w-kg-sub #w-kg-val{font-family:'Roboto Mono',monospace;}
+  /* בורר יחידת משקל לכל תרגיל (בעורך) */
+  .unit-toggle{max-width:100%;}
+  .weight-field-row{align-items:flex-start;}
+  .weight-field-row .weight-unit-field{flex:0 0 auto; min-width:150px;}
+  .weight-unit-field .unit-toggle .mode-btn{padding:10px 6px;}
+  .wkg-hint{font-size:11px; font-weight:700; color:var(--text-dim); margin-top:5px; min-height:14px;}
   /* Done screen duration */
   .done-dur{color:var(--text-dim); font-size:14px;}
   .done-dur b{color:var(--text);}
@@ -1137,6 +1148,7 @@ const ICONS = {
   back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>',
   check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
   skip:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v16l10-8z"/><path d="M19 5v14"/></svg>',
+  defer:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
   up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>',
   down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
   x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>',
@@ -1300,6 +1312,34 @@ function fmtKg(w){
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
+/* ---- יחידות משקל: ק"ג / ליברות (נבחר לכל תרגיל בנפרד) ----
+   המשקל נשמר תמיד בק"ג (תאימות לאחור ואי-תלות ביחידה).
+   כל תרגיל מחזיק ex.unit ('kg'|'lbs'); התצוגה/עריכה ביחידה של אותו תרגיל,
+   וכשהיחידה ליברות מוצג גם התרגום לק"ג בסוגריים. */
+const KG_PER_LB = 0.45359237;
+const LB_PER_KG = 1 / KG_PER_LB;
+const UNIT_STEP = { kg:0.5, lbs:1 };   // גודל צעד לכפתורי ± בכל יחידה (ליברות: יחידה שלמה)
+function toKg(v,u){ return (u==='lbs') ? v*KG_PER_LB : v; }
+function fromKg(kg,u){ return (u==='lbs') ? kg*LB_PER_KG : kg; }
+function unitLabel(u){ return u==='lbs' ? 'lbs' : 'ק"ג'; }
+function stepFor(u){ return UNIT_STEP[u] || 0.5; }
+function exUnit(ex){ return (ex && ex.unit==='lbs') ? 'lbs' : 'kg'; }
+function roundToStep(v,step){ return Math.round(v/step)*step; }
+// v ביחידה נתונה → מחרוזת תצוגה (+ תרגום לק"ג בסוגריים אם ליברות)
+function fmtWU(v,u){
+  if(u==='lbs') return `${fmtKg(v)} lbs (${fmtKg(v*KG_PER_LB)} ק"ג)`;
+  return `${fmtKg(v)} ק"ג`;
+}
+// kg → מחרוזת תצוגה מלאה ביחידה נתונה
+function fmtWUfromKg(kg,u){ return fmtWU(fromKg(kg, u), u); }
+// בורר יחידה לכל תרגיל בעורך
+function exUnitToggleHtml(i, u){
+  return `<div class="mode-toggle unit-toggle">
+    <button type="button" class="mode-btn ${u==='kg'?'active':''}" data-action="set-ex-unit" data-index="${i}" data-unit="kg">ק"ג</button>
+    <button type="button" class="mode-btn ${u==='lbs'?'active':''}" data-action="set-ex-unit" data-index="${i}" data-unit="lbs">ליברות</button>
+  </div>`;
+}
+
 /* =========================================================
    State
    ========================================================= */
@@ -1324,7 +1364,7 @@ function defaultPlan(){
   };
 }
 function defaultExercise(){
-  return {name:'', sets:3, reps:'10', mode:'reps', timeSeconds:30, restSet:'', restExercise:'', bilateral:false};
+  return {name:'', sets:3, reps:'10', mode:'reps', timeSeconds:30, restSet:'', restExercise:'', bilateral:false, unit:'kg'};
 }
 function exampleWorkout(){
   return {
@@ -1516,7 +1556,7 @@ function renderPreviewScreen(){
     const prevW = weights[weightKey(ex.name)];
     const badges = [
       ex.bilateral ? `<span class="preview-badge bilateral">⇄ ימין/שמאל</span>` : '',
-      prevW ? `<span class="preview-badge weight">${fmtKg(prevW.w)} ק"ג</span>` : ''
+      prevW ? `<span class="preview-badge weight">${fmtWUfromKg(prevW.w, exUnit(ex))}</span>` : ''
     ].join('');
     return `<div class="preview-item">
       <div class="preview-num">${i+1}</div>
@@ -1711,6 +1751,27 @@ function renderEditor(){
           <input type="text" inputmode="text" placeholder="לדוגמה 10" value="${escapeHtml(ex.reps)}" data-bind="ex.reps" data-index="${i}">
         </div>
       </div>`}
+      ${(()=>{
+        if(!ex.name) return '';
+        const entry = findExerciseEntry(ex.name);
+        const usesW = !entry || entry.e !== 'body only';   // מסתירים רק תרגילי משקל-גוף מזוהים
+        if(!usesW) return '';
+        const u = exUnit(ex);
+        const dispVal = (ex._wkg!=null) ? fmtKg(fromKg(ex._wkg,u)) : '';
+        const kgHint = (u==='lbs' && ex._wkg!=null) ? `≈ ${fmtKg(ex._wkg)} ק"ג` : '';
+        return `
+      <div class="field-row weight-field-row">
+        <div class="field">
+          <label>משקל (${unitLabel(u)})</label>
+          <input type="number" inputmode="decimal" step="${stepFor(u)}" min="0" placeholder="0" value="${dispVal}" data-weight-index="${i}">
+          <div class="wkg-hint" id="wkg-hint-${i}">${kgHint}</div>
+        </div>
+        <div class="field weight-unit-field">
+          <label>יחידה</label>
+          ${exUnitToggleHtml(i, u)}
+        </div>
+      </div>`;
+      })()}
       ${adv ? `
       <div class="adv-panel">
         <div class="field-row">
@@ -1947,11 +2008,17 @@ function renderSession(){
   const ex = plan.exercises[s.exIndex];
   const nextEx = plan.exercises[s.exIndex+1];
   const isTimed = ex.mode==='time';
+  // כפתור "דלג וחזור בהמשך" — זמין רק כשיש עוד תרגיל להחליף אליו
+  const canPostpone = s.exIndex < plan.exercises.length-1;
+  const postponeBtn = canPostpone
+    ? `<button class="btn btn-ghost btn-block" data-action="postpone-ex">${icon('defer')}<span>דלג וחזור בהמשך</span></button>`
+    : '';
 
   const segs = plan.exercises.map((e,i)=>{
     let cls='seg';
     if(i<s.exIndex) cls+=' done';
     else if(i===s.exIndex) cls+=' current';
+    else if(e._postponed) cls+=' postponed';
     return `<div class="${cls}"></div>`;
   }).join('');
 
@@ -1976,16 +2043,22 @@ function renderSession(){
 
     let weightBlock = '';
     if(exUsesWeight(ex)){
-      const curW = currentWeightFor(ex);
+      const u = exUnit(ex);
+      const curW = currentWeightFor(ex);            // ביחידת התרגיל
       const prevW = s.prevWeights[weightKey(ex.name)];
+      const step = stepFor(u);
+      const stepLbl = fmtKg(step);
+      const kgSub = u==='lbs'
+        ? `<div class="w-kg-sub">(<span id="w-kg-val">${fmtKg(curW*KG_PER_LB)}</span> ק"ג)</div>` : '';
       weightBlock = `
       <div class="weight-block">
         <div class="weight-row">
-          <button class="w-btn" data-action="weight-adj" data-delta="0.5" aria-label="הוספת חצי קילו">+0.5</button>
-          <div class="w-val"><span id="w-val" class="mono">${fmtKg(curW)}</span><small>ק"ג</small></div>
-          <button class="w-btn" data-action="weight-adj" data-delta="-0.5" aria-label="הפחתת חצי קילו">−0.5</button>
+          <button class="w-btn" data-action="weight-adj" data-delta="${step}" aria-label="הוספת משקל">+${stepLbl}</button>
+          <div class="w-val"><span id="w-val" class="mono">${fmtKg(curW)}</span><small>${unitLabel(u)}</small></div>
+          <button class="w-btn" data-action="weight-adj" data-delta="-${step}" aria-label="הפחתת משקל">−${stepLbl}</button>
         </div>
-        ${prevW ? `<div class="w-prev">בפעם הקודמת: ${fmtKg(prevW.w)} ק"ג</div>` : ''}
+        ${kgSub}
+        ${prevW ? `<div class="w-prev">בפעם הקודמת: ${fmtWUfromKg(prevW.w, u)}</div>` : ''}
       </div>`;
     }
 
@@ -2007,7 +2080,8 @@ function renderSession(){
       <div style="display:flex; justify-content:center; margin-bottom:14px;">
         <button class="btn btn-primary btn-finish-set" data-action="finish-set">${icon('check')}<span>${finishLabel}</span></button>
       </div>
-      <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex">${icon('skip')}<span>דילוג על התרגיל</span></button>
+      ${postponeBtn}
+      <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex">${icon('skip')}<span>דלג על התרגיל</span></button>
     </div>`;
   }else if(s.phase==='active' && isTimed){
     const tip2 = getTip(ex._muscles);
@@ -2044,7 +2118,8 @@ function renderSession(){
       <div style="display:flex; justify-content:center; margin-bottom:14px;">
         <button class="btn btn-primary btn-finish-set" data-action="finish-set">${icon('check')}<span>${finishLabel2}</span></button>
       </div>
-      <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex">${icon('skip')}<span>דילוג על התרגיל</span></button>
+      ${postponeBtn}
+      <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex">${icon('skip')}<span>דלג על התרגיל</span></button>
     </div>`;
   }else{ // restSet / restExercise
     const isExRest = s.phase==='restExercise';
@@ -2054,8 +2129,8 @@ function renderSession(){
     if(isExRest && nextEx){
       let nextW = '';
       if(exUsesWeight(nextEx)){
-        const w = currentWeightFor(nextEx);
-        if(w > 0) nextW = ` &middot; <span class="next-up-weight">${fmtKg(w)} ק"ג</span>`;
+        const w = currentWeightFor(nextEx);   // ביחידת התרגיל הבא
+        if(w > 0) nextW = ` &middot; <span class="next-up-weight">${fmtWU(w, exUnit(nextEx))}</span>`;
       }
       nextLine = `<div class="next-up">בהמשך: <b>${escapeHtml(nextEx.name||'תרגיל')}</b> &middot; ${nextEx.sets} סטים &middot; ${escapeHtml(exTargetLabel(nextEx))}${nextW}</div>`;
     }else if(!isExRest){
@@ -2205,12 +2280,15 @@ function currentExercise(){ return state.session.plan.exercises[state.session.ex
 // תרגיל עם ציוד (משקולות/מכונה/כבלים וכו') — מציגים בו את בורר המשקל.
 // 'body only' או ללא ציוד (מתיחות) — לא רלוונטי.
 function exUsesWeight(ex){ return ex._equip !== 'body only' && ex._equip !== null; }
+// מחזיר את המשקל הנוכחי ביחידה שנבחרה (sessionWeights נשמרים ביחידה הנוכחית).
 function currentWeightFor(ex){
   const s = state.session;
+  const u = exUnit(ex);
   const key = weightKey(ex.name);
   if(s.sessionWeights[key] != null) return s.sessionWeights[key];
-  const prev = s.prevWeights[key];
-  return prev ? prev.w : 0;
+  const prev = s.prevWeights[key];   // מאוחסן בק"ג
+  if(prev) return roundToStep(fromKg(prev.w, u), stepFor(u));
+  return 0;
 }
 function getRestSet(ex,plan){ return (ex.restSet!==''&&ex.restSet!=null) ? clampNum(ex.restSet,0,0) : clampNum(plan.defaultRestSet,60,0); }
 function getRestExercise(ex,plan){ return (ex.restExercise!==''&&ex.restExercise!=null) ? clampNum(ex.restExercise,0,0) : clampNum(plan.defaultRestExercise,90,0); }
@@ -2221,6 +2299,7 @@ function enterActivePhase(){
   const s = state.session;
   const ex = currentExercise();
   s.phase = 'active';
+  if(ex) ex._postponed = false;   // התרגיל חזר להיות פעיל — מסירים סימון דחייה
   // For bilateral exercises, always start new set on right side
   if(ex.bilateral && s.sidePhase === null){
     s.sidePhase = 'right';
@@ -2257,10 +2336,10 @@ function finishSet(){
   // Done with full set (non-bilateral, or just finished left side)
   if(ex.bilateral) s.sidePhase = 'right'; // reset for next set
 
-  // שמירת משקל — רק אם עודכן במהלך האימון הנוכחי
+  // שמירת משקל — רק אם עודכן במהלך האימון הנוכחי (המרה מיחידת התרגיל לק"ג)
   const wkey = weightKey(ex.name);
   if(s.sessionWeights && s.sessionWeights[wkey] != null){
-    saveWeight(ex.name, s.sessionWeights[wkey]);
+    saveWeight(ex.name, toKg(s.sessionWeights[wkey], exUnit(ex)));
   }
 
   if(s.setIndex < ex.sets){
@@ -2284,6 +2363,24 @@ function skipExercise(){
   }else{
     finishWorkout();
   }
+}
+// דחיית התרגיל הנוכחי במקום אחד קדימה — נבצע קודם את התרגיל הבא, ומיד אחריו נחזור אליו.
+// כך אפשר לדחות שוב ושוב (בכל פעם מקום אחד) עד שהמתקן מתפנה.
+function postponeExercise(){
+  const s = state.session;
+  const plan = s.plan;
+  const list = plan.exercises;
+  // צריך לפחות עוד תרגיל אחד שנותר כדי שיהיה הגיוני לדחות
+  if(s.exIndex >= list.length-1){ render(); return; }
+  clearInterval(s.timerId);
+  clearInterval(s.elapsedTimer);
+  const [cur] = list.splice(s.exIndex, 1);   // מוציאים את התרגיל הנוכחי
+  cur._postponed = true;                      // סימון "יבוצע בהמשך"
+  list.splice(s.exIndex + 1, 0, cur);         // מכניסים אותו מיד אחרי התרגיל הבא
+  // exIndex נשאר — כעת הוא מצביע על התרגיל הבא, והתרגיל שנדחה מיד אחריו
+  s.setIndex = 1;
+  s.sidePhase = null;
+  enterActivePhase();
 }
 function finishWorkout(){
   const s = state.session;
@@ -2379,6 +2476,13 @@ function adjustRest(delta){
    ========================================================= */
 function openEditor(plan){
   state.editorDraft = plan ? JSON.parse(JSON.stringify(plan)) : defaultPlan();
+  // טעינת המשקל הנוכחי (ק"ג) לכל תרגיל — לצורך עריכה בעורך
+  const savedW = loadWeights();
+  state.editorDraft.exercises.forEach(ex=>{
+    const e = savedW[weightKey(ex.name)];
+    ex._wkg = e ? e.w : null;
+    if(ex.unit !== 'lbs') ex.unit = 'kg';   // ברירת מחדל לתוכניות ישנות ללא יחידה
+  });
   state.advOpen = new Set();
   state.previewOpen = null;
   state.screen='editor';
@@ -2410,6 +2514,14 @@ document.body.addEventListener('click', async (e)=>{
     case 'new-plan':
       openEditor(null);
       break;
+    case 'set-ex-unit': {
+      const d = state.editorDraft;
+      if(d && index!=null && d.exercises[index]){
+        const u = t.dataset.unit==='lbs' ? 'lbs' : 'kg';
+        if(u !== exUnit(d.exercises[index])){ d.exercises[index].unit = u; render(); }
+      }
+      break;
+    }
     case 'open-history':
       state.screen='history';
       render();
@@ -2490,6 +2602,11 @@ document.body.addEventListener('click', async (e)=>{
       d.name = (d.name||'').trim() || 'תוכנית ללא שם';
       d.defaultRestSet = clampNum(d.defaultRestSet,60,0);
       d.defaultRestExercise = clampNum(d.defaultRestExercise,90,0);
+      // שמירת משקלים שנערכו (מאוחסן בק"ג) — לפני שהשדה הפנימי נמחק ברינדור מחדש
+      d.exercises.forEach(ex=>{
+        const nm = (ex.name||'').trim();
+        if(nm && ex._wkg!=null) saveWeight(nm, ex._wkg);
+      });
       d.exercises = d.exercises.map(ex=>({
         name:(ex.name||'').trim(),
         sets: clampNum(ex.sets,3,1),
@@ -2498,7 +2615,8 @@ document.body.addEventListener('click', async (e)=>{
         timeSeconds: clampNum(ex.timeSeconds,30,1),
         restSet: ex.restSet===''||ex.restSet==null ? '' : clampNum(ex.restSet,0,0),
         restExercise: ex.restExercise===''||ex.restExercise==null ? '' : clampNum(ex.restExercise,0,0),
-        bilateral: !!ex.bilateral
+        bilateral: !!ex.bilateral,
+        unit: ex.unit==='lbs' ? 'lbs' : 'kg'
       })).filter(ex=>ex.name);
       const idx = state.plans.findIndex(p=>p.id===d.id);
       if(idx>=0) state.plans[idx]=d; else state.plans.push(d);
@@ -2554,20 +2672,29 @@ document.body.addEventListener('click', async (e)=>{
       }
       render();
       break;
-    case 'pick-suggestion':
-      state.editorDraft.exercises[index].name = t.dataset.value;
+    case 'pick-suggestion': {
+      const exd = state.editorDraft.exercises[index];
+      exd.name = t.dataset.value;
+      // טעינת המשקל האחרון שנרשם לתרגיל הזה (אם קיים)
+      const savedW = loadWeights();
+      const e = savedW[weightKey(exd.name)];
+      exd._wkg = e ? e.w : null;
       render();
       break;
+    }
 
     // session
     case 'finish-set':
       finishSet();
       break;
+    case 'postpone-ex':
+      postponeExercise();
+      break;
     case 'confirm-skip-ex':
       state.modal = {
         title:'דילוג על התרגיל',
-        body:'לדלג על התרגיל הנוכחי ולעבור למנוחה לפני התרגיל הבא?',
-        confirmLabel:'דילוג',
+        body:'לדלג על התרגיל הזה לגמרי (בלי לחזור אליו) ולעבור הלאה? אם המתקן תפוס, אפשר במקום זאת "לדלג ולחזור בהמשך".',
+        confirmLabel:'דלג לגמרי',
         danger:false,
         onConfirm: ()=>{ skipExercise(); }
       };
@@ -2584,12 +2711,16 @@ document.body.addEventListener('click', async (e)=>{
       if(!s) break;
       const ex = currentExercise();
       const key = weightKey(ex.name);
-      const cur = currentWeightFor(ex);
-      const next = Math.max(0, Math.round((cur + parseFloat(t.dataset.delta))*10)/10);
+      const cur = currentWeightFor(ex);              // ביחידת התרגיל
+      const step = stepFor(exUnit(ex));
+      let next = Math.max(0, roundToStep(cur + parseFloat(t.dataset.delta), step));
+      next = Math.round(next*100)/100;               // ניקוי רעש נקודה צפה
       s.sessionWeights[key] = next;
       // עדכון ממוקד בלי רינדור מלא — שהתמונה לא תהבהב
       const el = document.getElementById('w-val');
       if(el) el.textContent = fmtKg(next);
+      const kel = document.getElementById('w-kg-val');
+      if(kel) kel.textContent = fmtKg(next*KG_PER_LB);
       break;
     }
     case 'confirm-exit':
@@ -2633,6 +2764,28 @@ document.body.addEventListener('click', async (e)=>{
 
 document.body.addEventListener('input', (e)=>{
   const t = e.target;
+
+  // עריכת משקל בעורך — נשמר בק"ג בטיוטה (_wkg), עדכון רמז הק"ג בזמן אמת
+  if(t.dataset && t.dataset.weightIndex != null){
+    const idx = parseInt(t.dataset.weightIndex,10);
+    const d = state.editorDraft;
+    if(!d || !d.exercises[idx]) return;
+    const u = exUnit(d.exercises[idx]);
+    const raw = t.value.trim();
+    if(raw===''){
+      d.exercises[idx]._wkg = null;
+    }else{
+      const num = parseFloat(raw);
+      d.exercises[idx]._wkg = isNaN(num) ? null : toKg(Math.max(0,num), u);
+    }
+    const hint = document.getElementById('wkg-hint-'+idx);
+    if(hint){
+      const wkg = d.exercises[idx]._wkg;
+      hint.textContent = (u==='lbs' && wkg!=null) ? `≈ ${fmtKg(wkg)} ק"ג` : '';
+    }
+    return;
+  }
+
   if(!t.dataset || !t.dataset.bind) return;
   const index = t.dataset.index!=null ? parseInt(t.dataset.index,10) : null;
   setBind(t.dataset.bind, index, t.value);
