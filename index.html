@@ -697,6 +697,14 @@
   .wake-badge svg{width:13px; height:13px;}
   .wake-badge.on{color:var(--accent-rest);}
 
+  /* כפתור "דלג וחזור בהמשך" במסך המנוחה */
+  .rest-postpone-btn.confirmed{
+    background:rgba(34,211,200,0.14);
+    border-color:rgba(34,211,200,0.5);
+    color:var(--accent-rest);
+    opacity:1;
+  }
+
   /* ---------- done ---------- */
   .done-screen{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:18px;}
   .done-glyph{
@@ -2091,11 +2099,6 @@ function renderSession(){
   const ex = plan.exercises[s.exIndex];
   const nextEx = plan.exercises[s.exIndex+1];
   const isTimed = ex.mode==='time';
-  // כפתור "דלג וחזור בהמשך" — זמין רק כשיש עוד תרגיל להחליף אליו
-  const canPostpone = s.exIndex < plan.exercises.length-1;
-  const postponeBtn = canPostpone
-    ? `<button class="btn btn-ghost btn-block" data-action="postpone-ex">${icon('defer')}<span>דלג וחזור בהמשך</span></button>`
-    : '';
 
   const segs = plan.exercises.map((e,i)=>{
     let cls='seg';
@@ -2115,7 +2118,6 @@ function renderSession(){
         </div>`
       : `<div class="ex-image-wrap"><div class="ex-image-fallback">${icon('image')}<span>אין תמונה מתאימה</span></div></div>`;
 
-    const tip = getTip(ex._muscles);
     const bodySvg = renderBodySVG(ex._muscles);
     const sideBadge = ex.bilateral && s.sidePhase
       ? `<div class="side-badge ${s.sidePhase==='right'?'right':'left'}">${s.sidePhase==='right'?'⬅ צד ימין':'➡ צד שמאל'}</div>`
@@ -2157,17 +2159,14 @@ function renderSession(){
         <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
       </div>
       ${weightBlock}
-      ${tip ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(tip)}</div></div>` : ''}
     </div>
     <div class="session-actions">
       <div style="display:flex; justify-content:center; margin-bottom:14px;">
         <button class="btn btn-primary btn-finish-set" data-action="finish-set">${icon('check')}<span>${finishLabel}</span></button>
       </div>
-      ${postponeBtn}
       <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex">${icon('skip')}<span>דלג על התרגיל</span></button>
     </div>`;
   }else if(s.phase==='active' && isTimed){
-    const tip2 = getTip(ex._muscles);
     const bodySvg2 = renderBodySVG(ex._muscles);
     const sideBadge2 = ex.bilateral && s.sidePhase
       ? `<div class="side-badge ${s.sidePhase==='right'?'right':'left'}">${s.sidePhase==='right'?'⬅ צד ימין':'➡ צד שמאל'}</div>`
@@ -2184,7 +2183,6 @@ function renderSession(){
         ${sideBadge2}
         <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b></div>
       </div>
-      ${tip2 ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(tip2)}</div></div>` : ''}
       <div class="ring-row">
         <button class="ring-adj-btn" data-action="adjust-rest" data-delta="15">+15</button>
         <div class="ring-wrap">
@@ -2201,7 +2199,6 @@ function renderSession(){
       <div style="display:flex; justify-content:center; margin-bottom:14px;">
         <button class="btn btn-primary btn-finish-set" data-action="finish-set">${icon('check')}<span>${finishLabel2}</span></button>
       </div>
-      ${postponeBtn}
       <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex">${icon('skip')}<span>דלג על התרגיל</span></button>
     </div>`;
   }else{ // restSet / restExercise
@@ -2226,10 +2223,20 @@ function renderSession(){
         <img class="frame-b" src="${nextImgs.b}" alt="" loading="lazy" onerror="this.style.display='none'">
         <div class="next-ex-label">התרגיל הבא</div>
       </div>` : '';
+    // טיפ לתרגיל הבא — מוצג בזמן המנוחה שלפניו, לא בזמן ביצוע התרגיל עצמו
+    const nextTip = isExRest && nextEx ? getTip(nextEx._muscles) : null;
+    const nextTipBlock = nextTip ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(nextTip)}</div></div>` : '';
+    // כפתור "דלג וחזור בהמשך" — רק במנוחה שלפני תרגיל חדש, וכשיש עוד תרגיל להחליף אתו
+    const canPostponeNext = isExRest && nextEx && (s.exIndex+2 < plan.exercises.length);
+    const postponeNextBlock = canPostponeNext ? `
+      <button class="btn btn-ghost btn-block rest-postpone-btn${s.restPostponeDone?' confirmed':''}" data-action="postpone-next-ex" ${s.restPostponeDone?'disabled':''}>
+        ${s.restPostponeDone ? icon('check') : icon('defer')}<span>${s.restPostponeDone ? 'נדחה — יבוצע בהמשך' : 'דלג וחזור בהמשך'}</span>
+      </button>` : '';
     main = `
     <div class="session-main-content">
       ${nextExImage}
       ${nextLine}
+      ${nextTipBlock}
       <div class="ring-row">
         <button class="ring-adj-btn" data-action="adjust-rest" data-delta="15">+15</button>
         <div class="ring-wrap">
@@ -2244,6 +2251,7 @@ function renderSession(){
     </div>
     <div class="session-actions">
       <button class="btn btn-rest btn-block btn-lg" data-action="skip-rest">${icon('skip')}<span>דילוג על המנוחה</span></button>
+      ${postponeNextBlock}
     </div>`;
   }
 
@@ -2455,23 +2463,23 @@ function skipExercise(){
     finishWorkout();
   }
 }
-// דחיית התרגיל הנוכחי במקום אחד קדימה — נבצע קודם את התרגיל הבא, ומיד אחריו נחזור אליו.
-// כך אפשר לדחות שוב ושוב (בכל פעם מקום אחד) עד שהמתקן מתפנה.
-function postponeExercise(){
+// דחיית התרגיל הבא (זה שממתין אחרי המנוחה הנוכחית) מקום אחד קדימה.
+// המנוחה הנוכחית ממשיכה לרוץ בלי הפרעה — רק סדר התרגילים מתעדכן, כך שכשהיא
+// תסתיים, המערכת תעלה אוטומטית את התרגיל שבא אחרי זה שנדחה.
+// אפשר לדחות שוב ושוב (בכל פעם מקום אחד) עד שהמתקן מתפנה.
+function postponeNextExercise(){
   const s = state.session;
+  if(s.phase!=='restExercise' || s.restPostponeDone) return;
   const plan = s.plan;
   const list = plan.exercises;
-  // צריך לפחות עוד תרגיל אחד שנותר כדי שיהיה הגיוני לדחות
-  if(s.exIndex >= list.length-1){ render(); return; }
-  clearInterval(s.timerId);
-  clearInterval(s.elapsedTimer);
-  const [cur] = list.splice(s.exIndex, 1);   // מוציאים את התרגיל הנוכחי
-  cur._postponed = true;                      // סימון "יבוצע בהמשך"
-  list.splice(s.exIndex + 1, 0, cur);         // מכניסים אותו מיד אחרי התרגיל הבא
-  // exIndex נשאר — כעת הוא מצביע על התרגיל הבא, והתרגיל שנדחה מיד אחריו
-  s.setIndex = 1;
-  s.sidePhase = null;
-  enterActivePhase();
+  const nextIdx = s.exIndex + 1;
+  // צריך תרגיל נוסף אחרי הבא כדי שיהיה הגיוני לדחות אותו קדימה
+  if(nextIdx + 1 >= list.length) return;
+  const [nx] = list.splice(nextIdx, 1);   // מוציאים את התרגיל הבא
+  nx._postponed = true;                    // סימון "יבוצע בהמשך"
+  list.splice(nextIdx + 1, 0, nx);         // מכניסים אותו מיד אחרי מי שהיה אחריו
+  s.restPostponeDone = true;               // מחווה: מסמנים שהבקשה התקבלה
+  render();
 }
 function finishWorkout(){
   const s = state.session;
@@ -2497,6 +2505,7 @@ function startRest(phase, seconds){
   clearInterval(s.elapsedTimer);
   s.phase = phase;
   s.completeFn = endRest;
+  if(phase==='restExercise') s.restPostponeDone = false;
   startCountdown(seconds);
 }
 // Countdown for a time-based exercise set (e.g. plank, wall sit).
@@ -2782,13 +2791,13 @@ document.body.addEventListener('click', async (e)=>{
     case 'finish-set':
       finishSet();
       break;
-    case 'postpone-ex':
-      postponeExercise();
+    case 'postpone-next-ex':
+      postponeNextExercise();
       break;
     case 'confirm-skip-ex':
       state.modal = {
         title:'דילוג על התרגיל',
-        body:'לדלג על התרגיל הזה לגמרי (בלי לחזור אליו) ולעבור הלאה? אם המתקן תפוס, אפשר במקום זאת "לדלג ולחזור בהמשך".',
+        body:'לדלג על התרגיל הזה לגמרי (בלי לחזור אליו) ולעבור הלאה?',
         confirmLabel:'דלג לגמרי',
         danger:false,
         onConfirm: ()=>{ skipExercise(); }
