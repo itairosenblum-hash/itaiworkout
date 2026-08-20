@@ -84,6 +84,20 @@
     overflow:hidden;
     background:var(--bg);
   }
+  /* Extra compaction for short viewports — keeps the session screen on one page without scrolling */
+  @media (max-height:700px){
+    .screen-session.screen{padding:8px 16px 8px;}
+    .screen-session .session-head{padding:6px 10px 6px; margin-bottom:5px;}
+    .session-main, .session-main-content{gap:5px;}
+    .ex-title{font-size:18px; margin:1px 0 0;}
+    .ex-subtitle{font-size:12px;}
+    .ring-wrap{width:150px; height:150px; margin:0;}
+    .ring-time{font-size:32px;}
+    .btn-finish-set{width:82px; height:82px;}
+    .btn-finish-set svg{width:22px !important; height:22px !important;}
+    .session-actions{padding-top:4px; margin-top:0;}
+    .wake-badge{margin-top:2px;}
+  }
   /* Galaxy Z Fold inner screen — tablet layout */
   @media (min-width:600px){
     #app{
@@ -191,11 +205,12 @@
   .screen-session .session-head {
     background:var(--surface-solid);
     border-radius:var(--radius);
-    padding:10px 14px 12px;
+    padding:7px 12px 8px;
     border:1px solid rgba(var(--glass-rgb),0.09);
-    margin-bottom:16px;
+    margin-bottom:8px;
     box-shadow:0 4px 24px rgba(0,0,0,.5);
   }
+  .screen-session.screen{padding:12px 16px 10px;}
   .screen-session .session-head .topbar {
     background:transparent; border:none; padding:0; margin-bottom:0;
   }
@@ -354,11 +369,11 @@
     background:rgba(var(--glass-rgb),0.06);
     border:1px solid var(--border-bright);
     border-radius:var(--radius-sm);
-    padding:10px 14px;
+    padding:7px 12px;
     display:flex;
     flex-direction:column;
-    gap:6px;
-    margin-bottom:4px;
+    gap:4px;
+    margin-bottom:0;
   }
   .ex-muscles{
     font-size:13px;
@@ -482,10 +497,10 @@
   }
 
   /* ---------- session ---------- */
-  .session-head{margin-bottom:16px;}
-  .session-head .plan-name{font-size:13px; color:var(--text-dim); font-weight:700;}
-  .session-head .progress-text{font-size:15px; font-weight:800; margin-top:2px;}
-  .segments{display:flex; gap:4px; margin-top:10px;}
+  .session-head{margin-bottom:8px;}
+  .session-head .plan-name{font-size:12px; color:var(--text-dim); font-weight:700;}
+  .session-head .progress-text{font-size:14px; font-weight:800; margin-top:1px;}
+  .segments{display:flex; gap:4px; margin-top:6px;}
   .segments .seg{flex:1; height:5px; border-radius:3px; background:rgba(var(--glass-rgb),0.09);}
   .segments .seg.done{background:var(--accent-rest);}
   .segments .seg.current{
@@ -499,11 +514,11 @@
   .session-main{
     flex:1; display:flex; flex-direction:column; align-items:center;
     justify-content:flex-start;
-    text-align:center; gap:14px; padding:10px 0;
+    text-align:center; gap:8px; padding:2px 0;
   }
   .session-main-content{
     display:flex; flex-direction:column; align-items:center;
-    justify-content:flex-start; gap:14px; width:100%;
+    justify-content:flex-start; gap:8px; width:100%;
   }
 
   .ex-image-wrap{
@@ -539,10 +554,10 @@
   }
   .ex-media-row .ex-image-wrap{
     flex:1; max-width:none; min-width:0;
-    aspect-ratio:4/3;
+    aspect-ratio:16/10;
   }
   .ex-body-svg{
-    width:80px; flex-shrink:0;
+    width:62px; flex-shrink:0;
     background:rgba(0,0,0,0.50);
     border:1px solid var(--border-bright);
     border-radius:var(--radius-sm);
@@ -551,12 +566,12 @@
     padding:4px;
   }
   .ex-body-svg--timed{
-    width:72px; height:160px;
-    margin:0 auto 4px;
+    width:60px; height:120px;
+    margin:0 auto 2px;
   }
 
-  .ex-title{font-size:26px; font-weight:800; margin:4px 0 0; text-shadow:0 2px 12px rgba(0,0,0,.6);}
-  .ex-subtitle{font-size:15px; color:var(--text-dim); font-weight:600;}
+  .ex-title{font-size:21px; font-weight:800; margin:2px 0 0; text-shadow:0 2px 12px rgba(0,0,0,.6);}
+  .ex-subtitle{font-size:13px; color:var(--text-dim); font-weight:600;}
   .ex-subtitle b{color:var(--text); font-family:'Roboto Mono',monospace;}
 
   /* Bilateral toggle button in editor */
@@ -621,11 +636,12 @@
   .side-badge.right{ background:rgba(var(--accent-rgb),0.18); color:var(--accent); border:1.5px solid rgba(var(--accent-rgb),0.5); }
   .side-badge.left{ background:rgba(34,211,200,0.15); color:var(--accent-rest); border:1.5px solid rgba(34,211,200,0.5); }
 
-  .next-up{font-size:13px; color:var(--text-dim);}
+  .next-up{font-size:12px; color:var(--text-dim);}
   .next-up-weight{color:var(--accent, #4ade80); font-weight:700; white-space:nowrap;}
   .next-up b{color:var(--text);}
+  .screen-session .side-badge{margin-bottom:3px; padding:4px 12px; font-size:13px;}
 
-  .ring-wrap{position:relative; width:248px; height:248px; margin:6px 0;}
+  .ring-wrap{position:relative; width:196px; height:196px; margin:2px 0;}
   .ring-wrap svg{width:100%; height:100%; transform:rotate(-90deg);}
   .ring-track{fill:none; stroke:rgba(var(--glass-rgb),0.08); stroke-width:10;}
   .ring-progress{fill:none; stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset 1s linear, stroke .3s ease;}
@@ -634,7 +650,7 @@
     position:absolute; inset:0; display:flex; flex-direction:column;
     align-items:center; justify-content:center; gap:4px;
   }
-  .ring-time{font-size:50px; font-weight:700; font-family:'Roboto Mono',monospace; letter-spacing:.02em; text-shadow:0 2px 16px rgba(0,0,0,.5); transform-origin:center;}
+  .ring-time{font-size:40px; font-weight:700; font-family:'Roboto Mono',monospace; letter-spacing:.02em; text-shadow:0 2px 16px rgba(0,0,0,.5); transform-origin:center;}
   .ring-time.pulse-tick{animation:ringTimePulse .4s ease-out;}
   @keyframes ringTimePulse{
     0%{transform:scale(1); color:var(--text);}
@@ -647,28 +663,30 @@
   .ring-phase.active{color:var(--accent);}
 
   .session-actions{
-    width:100%; padding-top:14px;
-    margin-top:8px;
+    width:100%; padding-top:6px;
+    margin-top:2px;
   }
+  .session-actions .btn:not(.btn-finish-set){padding:12px 16px; font-size:14px;}
+  .rest-postpone-btn{margin-top:6px;}
   /* Elapsed workout timer */
   .workout-elapsed{
     display:flex; align-items:center; justify-content:center; gap:6px;
-    font-size:13px; font-weight:700; color:var(--text-dim);
+    font-size:12px; font-weight:700; color:var(--text-dim);
     font-family:'Roboto Mono',monospace;
   }
-  .workout-elapsed svg{width:14px; height:14px; color:var(--accent);}
+  .workout-elapsed svg{width:13px; height:13px; color:var(--accent);}
   /* Big round finish-set button */
   .btn-finish-set{
-    width:120px; height:120px; border-radius:50% !important;
-    font-size:13px !important; font-weight:800 !important;
-    flex-direction:column; gap:6px !important;
+    width:96px; height:96px; border-radius:50% !important;
+    font-size:12px !important; font-weight:800 !important;
+    flex-direction:column; gap:4px !important;
     padding:0 !important;
     box-shadow:0 6px 28px var(--accent-glow), 0 1px 0 rgba(255,255,255,.15) inset !important;
     margin:0 auto; display:flex;
   }
-  .btn-finish-set svg{width:32px !important; height:32px !important;}
+  .btn-finish-set svg{width:26px !important; height:26px !important;}
   .rest-adjust{display:none;}
-  .ring-row{display:flex; align-items:center; justify-content:center; gap:12px;}
+  .ring-row{display:flex; align-items:center; justify-content:center; gap:10px;}
   .ring-adj-btn{
     appearance:none; border:none; cursor:pointer;
     font-family:'Roboto Mono',monospace; font-weight:700; font-size:14px;
@@ -680,7 +698,7 @@
   }
   .ring-adj-btn:active{transform:scale(.90); background:rgba(var(--glass-rgb),0.14); color:var(--text);}
   /* Next exercise preview image */
-  .next-ex-preview{max-width:200px; aspect-ratio:4/3; position:relative;}
+  .next-ex-preview{max-width:150px; aspect-ratio:4/3; position:relative;}
   .next-ex-label{
     position:absolute; bottom:0; left:0; right:0;
     background:rgba(13,15,18,0.80);
@@ -692,7 +710,7 @@
 
   .wake-badge{
     display:flex; align-items:center; gap:6px; justify-content:center;
-    font-size:11px; color:var(--text-dim); margin-top:10px;
+    font-size:10px; color:var(--text-dim); margin-top:4px;
   }
   .wake-badge svg{width:13px; height:13px;}
   .wake-badge.on{color:var(--accent-rest);}
@@ -799,13 +817,13 @@
   .corner-menu-item.danger{color:var(--danger);}
   .corner-menu-item.danger:active{background:rgba(255,71,87,0.13);}
   /* Weight tracking (session) */
-  .weight-block{margin-top:2px;}
-  .weight-row{display:flex; align-items:center; justify-content:center; gap:14px;}
+  .weight-block{margin-top:0;}
+  .weight-row{display:flex; align-items:center; justify-content:center; gap:12px;}
   .w-btn{
-    min-width:58px; height:38px; border-radius:12px;
+    min-width:52px; height:34px; border-radius:12px;
     border:1px solid var(--border-bright);
     background:var(--surface-2);
-    color:var(--text); font-family:inherit; font-size:14px; font-weight:800;
+    color:var(--text); font-family:inherit; font-size:13px; font-weight:800;
     cursor:pointer;
   }
   .w-btn:active{
@@ -814,11 +832,11 @@
   }
   .w-val{
     display:flex; align-items:baseline; justify-content:center; gap:4px;
-    min-width:78px; font-size:24px; font-weight:800; color:var(--text);
+    min-width:70px; font-size:21px; font-weight:800; color:var(--text);
   }
-  .w-val small{font-size:12px; font-weight:700; color:var(--text-dim);}
-  .w-prev{text-align:center; font-size:12px; color:var(--text-dim); margin-top:4px;}
-  .w-kg-sub{text-align:center; font-size:13px; font-weight:700; color:var(--text-dim); margin-top:3px;}
+  .w-val small{font-size:11px; font-weight:700; color:var(--text-dim);}
+  .w-prev{text-align:center; font-size:11px; color:var(--text-dim); margin-top:2px;}
+  .w-kg-sub{text-align:center; font-size:12px; font-weight:700; color:var(--text-dim); margin-top:1px;}
   .w-kg-sub .mono, .w-kg-sub #w-kg-val{font-family:'Roboto Mono',monospace;}
   /* בורר יחידת משקל לכל תרגיל (בעורך) */
   .unit-toggle{max-width:100%;}
@@ -1541,21 +1559,55 @@ function playEndSound(){
 /* =========================================================
    Wake lock
    ========================================================= */
+let wakeLockRetryTimer = null;
 async function requestWakeLock(){
   if(!state.session) return;
+  clearTimeout(wakeLockRetryTimer);
   try{
     if('wakeLock' in navigator){
       const wl = await navigator.wakeLock.request('screen');
       state.session.wakeLock = wl;
-      wl.addEventListener('release', ()=>{ if(state.session) state.session.wakeLock=null; updateWakeBadge(); });
+      wl.addEventListener('release', ()=>{
+        if(!state.session) return;
+        state.session.wakeLock=null;
+        updateWakeBadge();
+        // הנעילה עשויה ליפול מסיבות שאינן ביטול מפורש (חיסכון בסוללה של המכשיר וכו') —
+        // ננסה לחדש אותה אוטומטית כל עוד האימון עדיין פעיל והמסך גלוי
+        if(document.visibilityState==='visible' && state.screen==='session'){
+          clearTimeout(wakeLockRetryTimer);
+          wakeLockRetryTimer = setTimeout(requestWakeLock, 1000);
+        }
+      });
     }
   }catch(e){ /* permission / unsupported */ }
   updateWakeBadge();
 }
 function releaseWakeLock(){
+  clearTimeout(wakeLockRetryTimer);
+  stopWakeLockWatchdog();
   if(state.session && state.session.wakeLock){
     try{ state.session.wakeLock.release(); }catch(e){}
     state.session.wakeLock=null;
+  }
+}
+// שומר-סף תקופתי: בודק כל 15 שניות שהנעילה עדיין מוחזקת, ומחדש אותה אם לא —
+// רשת ביטחון למקרים שבהם אירוע ה-release לא נורה (למשל עצירת חשמל אגרסיבית ע"י המכשיר)
+let wakeLockWatchdog = null;
+function startWakeLockWatchdog(){
+  clearInterval(wakeLockWatchdog);
+  wakeLockWatchdog = setInterval(()=>{
+    if(state.session && state.screen==='session' && document.visibilityState==='visible' && !state.session.wakeLock){
+      requestWakeLock();
+    }
+  }, 15000);
+}
+function stopWakeLockWatchdog(){
+  clearInterval(wakeLockWatchdog);
+  wakeLockWatchdog = null;
+}
+function reacquireWakeLockIfNeeded(){
+  if(state.session && state.screen==='session' && document.visibilityState==='visible' && !state.session.wakeLock){
+    requestWakeLock();
   }
 }
 document.addEventListener('visibilitychange', ()=>{
@@ -1563,6 +1615,14 @@ document.addEventListener('visibilitychange', ()=>{
     if(!state.session.wakeLock) requestWakeLock();
     // סנכרון מיידי של הספירה אחרי חזרה מהרקע
     syncCountdown();
+  }
+});
+// חלק מהמכשירים/דפדפנים לא מיישמים visibilitychange באופן עקבי בעת חזרה מהרקע —
+// focus הוא רשת ביטחון נוספת, וכל הקשה על מסך האימון מנסה לחדש נעילה שנפלה
+window.addEventListener('focus', reacquireWakeLockIfNeeded);
+document.addEventListener('pointerdown', (e)=>{
+  if(state.screen==='session' && e.target && e.target.closest && e.target.closest('.screen-session')){
+    reacquireWakeLockIfNeeded();
   }
 });
 
@@ -2224,7 +2284,7 @@ function renderSession(){
       ${weightBlock}
     </div>
     <div class="session-actions">
-      <div style="display:flex; justify-content:center; margin-bottom:14px;">
+      <div style="display:flex; justify-content:center; margin-bottom:8px;">
         <button class="btn btn-primary btn-finish-set" data-action="finish-set">${icon('check')}<span>${finishLabel}</span></button>
       </div>
       <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex">${icon('skip')}<span>דלג על התרגיל</span></button>
@@ -2259,7 +2319,7 @@ function renderSession(){
       </div>
     </div>
     <div class="session-actions">
-      <div style="display:flex; justify-content:center; margin-bottom:14px;">
+      <div style="display:flex; justify-content:center; margin-bottom:8px;">
         <button class="btn btn-primary btn-finish-set" data-action="finish-set">${icon('check')}<span>${finishLabel2}</span></button>
       </div>
       <button class="btn btn-ghost btn-block" data-action="confirm-skip-ex">${icon('skip')}<span>דלג על התרגיל</span></button>
@@ -2324,13 +2384,11 @@ function renderSession(){
   return `<div class="screen screen-session">
     <div class="session-head">
       <div class="topbar" style="margin-bottom:0;">
-        <button class="icon-btn" data-action="confirm-exit" aria-label="עצירת אימון">${icon('x')}</button>
         <div style="flex:1; text-align:center;">
           <div class="plan-name">${escapeHtml(plan.name)}</div>
           <div class="progress-text">תרגיל ${s.exIndex+1} מתוך ${plan.exercises.length}</div>
           <div class="workout-elapsed">${icon('clock')}<span id="workout-elapsed">00:00</span></div>
         </div>
-        <div style="width:44px; flex:none;" aria-hidden="true"></div>
       </div>
       <div class="segments">${segs}</div>
     </div>
@@ -2435,6 +2493,7 @@ function startSession(plan){
   state.screen='session';
   ensureAudio();
   requestWakeLock();
+  startWakeLockWatchdog();
   enterActivePhase();
 }
 
