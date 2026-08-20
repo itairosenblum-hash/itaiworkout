@@ -84,20 +84,6 @@
     overflow:hidden;
     background:var(--bg);
   }
-  /* Extra compaction for short viewports — keeps the session screen on one page without scrolling */
-  @media (max-height:700px){
-    .screen-session.screen{padding:8px 16px 8px;}
-    .screen-session .session-head{padding:6px 10px 6px; margin-bottom:5px;}
-    .session-main, .session-main-content{gap:5px;}
-    .ex-title{font-size:18px; margin:1px 0 0;}
-    .ex-subtitle{font-size:12px;}
-    .ring-wrap{width:150px; height:150px; margin:0;}
-    .ring-time{font-size:32px;}
-    .btn-finish-set{width:82px; height:82px;}
-    .btn-finish-set svg{width:22px !important; height:22px !important;}
-    .session-actions{padding-top:4px; margin-top:0;}
-    .wake-badge{margin-top:2px;}
-  }
   /* Galaxy Z Fold inner screen — tablet layout */
   @media (min-width:600px){
     #app{
@@ -556,6 +542,7 @@
   .ex-media-row .ex-image-wrap{
     flex:0 1 240px; max-width:240px; min-width:0;
     aspect-ratio:16/10;
+    max-height:22vh; max-height:22dvh;
   }
   .ex-body-svg{
     width:62px; flex-shrink:0;
@@ -886,6 +873,23 @@
     font-size:12px; font-weight:600; color:#22d3c8; margin-top:6px;
   }
   .plan-last svg{width:12px; height:12px; flex-shrink:0;}
+
+  /* Extra compaction for short viewports — placed last on purpose so it wins
+     the cascade over the equal-specificity rules defined earlier above */
+  @media (max-height:700px){
+    .screen-session.screen{padding:8px 16px 8px;}
+    .screen-session .session-head{padding:6px 10px 6px; margin-bottom:5px;}
+    .session-main, .session-main-content{gap:5px;}
+    .ex-title{font-size:18px; margin:1px 0 0;}
+    .ex-subtitle{font-size:12px;}
+    .ex-media-row .ex-image-wrap{max-height:16vh; max-height:16dvh;}
+    .ring-wrap{width:150px; height:150px; margin:0;}
+    .ring-time{font-size:32px;}
+    .btn-finish-set{width:82px; height:82px;}
+    .btn-finish-set svg{width:22px !important; height:22px !important;}
+    .session-actions{padding-top:4px; margin-top:0;}
+    .wake-badge{margin-top:2px;}
+  }
 </style>
 </head>
 <body>
