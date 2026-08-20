@@ -2123,8 +2123,8 @@ function renderBodySVG(muscles){
   const active = new Set(muscles||[]);
   const dim = 'rgba(255,255,255,0.45)';
   const isLight = currentTheme()==='light';
-  const hi  = isLight ? '#1a56db' : '#ff6b1a';
-  const hi2 = isLight ? 'rgba(26,86,219,0.7)' : 'rgba(255,107,26,0.7)';
+  const hi  = isLight ? '#d9293b' : '#ff4757';
+  const hi2 = isLight ? 'rgba(217,41,59,0.7)' : 'rgba(255,71,87,0.7)';
 
   function mc(groups){ return groups.some(g=>active.has(g)) ? hi : dim; }
   function ms(groups){ return groups.some(g=>active.has(g)) ? hi2 : 'none'; }
