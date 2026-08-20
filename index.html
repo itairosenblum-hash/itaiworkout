@@ -936,11 +936,18 @@ function setRealAppHeight(){
   const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
   document.documentElement.style.setProperty('--app-height', h + 'px');
 }
+function onViewportChange(){
+  setRealAppHeight();
+  // הערה: state מוגדר עם let בהמשך הקובץ, אבל בזמן שהאירועים האלה יורים
+  // (resize/orientationchange, תמיד אסינכרוני) הסקריפט כולו כבר רץ במלואו,
+  // כך שאין כאן בעיית temporal-dead-zone.
+  if(typeof state!=='undefined' && state && state.screen==='session') fitSessionScreen();
+}
 setRealAppHeight();
-window.addEventListener('resize', setRealAppHeight);
-window.addEventListener('orientationchange', setRealAppHeight);
+window.addEventListener('resize', onViewportChange);
+window.addEventListener('orientationchange', onViewportChange);
 if(window.visualViewport){
-  window.visualViewport.addEventListener('resize', setRealAppHeight);
+  window.visualViewport.addEventListener('resize', onViewportChange);
 }
 
 /* =========================================================
@@ -1771,7 +1778,35 @@ function render(){
   // "ביטול האימון" בתפריט הפינתי מוצג רק כשיש אימון פעיל
   const cornerExit = document.getElementById('corner-menu-exit');
   if(cornerExit) cornerExit.hidden = !(state.screen==='session' && state.session);
-  if(state.screen==='session') startTickAnimation();
+  if(state.screen==='session'){
+    startTickAnimation();
+    fitSessionScreen();
+  }
+}
+
+/* =========================================================
+   Fit-to-container למסך האימון
+   במקום לנחש גדלים קבועים מראש, מודדים בפועל כמה מקום יש
+   (אחרי שה-CSS כבר קבע את הגובה האמיתי של #app), ואם התוכן
+   גולש — מכווצים את האלמנט הגמיש היחיד (תמונת התרגיל/הטבעת)
+   בדיוק בכמות הדרושה. כך מובטח שהתוכן תמיד ייכנס בלי גלילה
+   ובלי חיתוך, בלי קשר לגובה המסך הספציפי של המכשיר.
+   ========================================================= */
+function fitSessionScreen(){
+  const screenEl = document.querySelector('.screen-session');
+  if(!screenEl) return;
+  const media = screenEl.querySelector('.ex-media-row .ex-image-wrap') || screenEl.querySelector('.ring-wrap');
+  if(!media) return;
+  media.style.maxHeight = '';
+  // עד 4 ניסיונות כיווץ הדרגתי — למקרה שכיווץ אחד לא הספיק
+  for(let i=0;i<4;i++){
+    const overflow = screenEl.scrollHeight - screenEl.clientHeight;
+    if(overflow<=1) break;
+    const curH = media.getBoundingClientRect().height;
+    const newH = Math.max(56, Math.floor(curH - overflow - 4));
+    if(newH >= curH) break; // אין עוד מה לכווץ באלמנט הזה
+    media.style.maxHeight = newH + 'px';
+  }
 }
 
 function renderPreviewScreen(){
