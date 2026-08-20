@@ -173,9 +173,13 @@
   .topbar .sub{font-size:13px; color:var(--text-dim); margin-top:2px;}
 
   /* Glass topbar on inner screens */
-  /* Editor screen scrolls, others are fixed */
+  /* Session screen fits exactly (no scroll, via fitSessionScreen JS).
+     Every other screen scrolls internally if its content is taller than the view. */
   .screen-editor{overflow-y:auto; overflow-x:hidden;}
   .screen-history{overflow-y:auto; overflow-x:hidden;}
+  .screen-home{overflow-y:auto; overflow-x:hidden;}
+  .screen-preview{overflow-y:auto; overflow-x:hidden;}
+  .screen-done{overflow-y:auto; overflow-x:hidden;}
   .screen-editor > .topbar,
   .screen-preview > .topbar,
   .screen-history > .topbar,
