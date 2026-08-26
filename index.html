@@ -76,8 +76,9 @@
     width:100%;
     max-width:600px; /* wider for Fold inner screen */
     margin:0 auto;
-    min-height:100vh;
-    min-height:100dvh;
+    height:100vh;
+    height:100dvh;
+    height:var(--app-height, 100dvh);
     display:flex;
     flex-direction:column;
     position:relative;
@@ -175,6 +176,8 @@
   /* Editor screen scrolls, others are fixed */
   .screen-editor{overflow-y:auto; overflow-x:hidden;}
   .screen-history{overflow-y:auto; overflow-x:hidden;}
+  .screen-preview{overflow-y:auto; overflow-x:hidden;}
+  .screen-done{overflow-y:auto; overflow-x:hidden;}
   .screen-editor > .topbar,
   .screen-preview > .topbar,
   .screen-history > .topbar,
@@ -909,6 +912,29 @@
 <script>
 (function(){
 'use strict';
+
+/* =========================================================
+   מדידת גובה תצוגה אמיתי (Android Chrome עם שורת כתובת דינמית)
+   100dvh לא אמין כשה-visualViewport לא תואם ל-window.innerHeight,
+   לכן מודדים ושומרים כמשתנה CSS. הקריאה הסינכרונית הראשונה חייבת
+   להימנע מהתייחסות ל-state (שמוגדר עם let בהמשך הקובץ) בגלל
+   temporal-dead-zone; ה-handlers האסינכרוניים (resize/orientation)
+   רצים אחרי שהסקריפט כולו כבר אותחל, כך שהם בטוחים.
+   ========================================================= */
+function setRealAppHeight(){
+  const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+  document.documentElement.style.setProperty('--app-height', h + 'px');
+}
+function onViewportChange(){
+  setRealAppHeight();
+  if(typeof state!=='undefined' && state && state.screen==='session') fitSessionScreen();
+}
+setRealAppHeight();
+window.addEventListener('resize', onViewportChange);
+window.addEventListener('orientationchange', onViewportChange);
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', onViewportChange);
+}
 
 /* =========================================================
    Exercise image matching (Hebrew -> Free Exercise DB)
@@ -1697,7 +1723,35 @@ function render(){
   // "ביטול האימון" בתפריט הפינתי מוצג רק כשיש אימון פעיל
   const cornerExit = document.getElementById('corner-menu-exit');
   if(cornerExit) cornerExit.hidden = !(state.screen==='session' && state.session);
-  if(state.screen==='session') startTickAnimation();
+  if(state.screen==='session'){
+    startTickAnimation();
+    fitSessionScreen();
+  }
+}
+
+/* =========================================================
+   Fit-to-container למסך האימון
+   במקום לנחש גדלים קבועים מראש, מודדים בפועל כמה מקום יש
+   (אחרי שה-CSS כבר קבע את הגובה האמיתי של #app), ואם התוכן
+   גולש — מכווצים את האלמנט הגמיש היחיד (תמונת התרגיל/הטבעת)
+   בדיוק בכמות הדרושה. כך מובטח שהתוכן תמיד ייכנס בלי גלילה
+   ובלי חיתוך, בלי קשר לגובה המסך הספציפי של המכשיר.
+   ========================================================= */
+function fitSessionScreen(){
+  const screenEl = document.querySelector('.screen-session');
+  if(!screenEl) return;
+  const media = screenEl.querySelector('.ex-media-row .ex-image-wrap') || screenEl.querySelector('.ring-wrap');
+  if(!media) return;
+  media.style.maxHeight = '';
+  // עד 4 ניסיונות כיווץ הדרגתי — למקרה שכיווץ אחד לא הספיק
+  for(let i=0;i<4;i++){
+    const overflow = screenEl.scrollHeight - screenEl.clientHeight;
+    if(overflow<=1) break;
+    const curH = media.getBoundingClientRect().height;
+    const newH = Math.max(56, Math.floor(curH - overflow - 4));
+    if(newH >= curH) break; // אין עוד מה לכווץ באלמנט הזה
+    media.style.maxHeight = newH + 'px';
+  }
 }
 
 function renderPreviewScreen(){
@@ -2337,13 +2391,11 @@ function renderSession(){
   return `<div class="screen screen-session">
     <div class="session-head">
       <div class="topbar" style="margin-bottom:0;">
-        <button class="icon-btn" data-action="confirm-exit" aria-label="עצירת אימון">${icon('x')}</button>
         <div style="flex:1; text-align:center;">
           <div class="plan-name">${escapeHtml(plan.name)}</div>
           <div class="progress-text">תרגיל ${s.exIndex+1} מתוך ${plan.exercises.length}</div>
           <div class="workout-elapsed">${icon('clock')}<span id="workout-elapsed">00:00</span></div>
         </div>
-        <div style="width:44px; flex:none;" aria-hidden="true"></div>
       </div>
       <div class="segments">${segs}</div>
     </div>
@@ -2356,7 +2408,7 @@ function renderSession(){
 
 function renderDone(){
   const dur = state.session && state.session.durationSec!=null ? fmtTime(state.session.durationSec) : null;
-  return `<div class="screen">
+  return `<div class="screen screen-done">
     <div class="done-screen">
       <div class="done-glyph">${icon('check')}</div>
       <h2>כל הכבוד, סיימת את האימון!</h2>
