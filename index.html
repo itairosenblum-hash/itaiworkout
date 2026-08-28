@@ -634,6 +634,14 @@
   .next-up{font-size:13px; color:var(--text-dim);}
   .next-up-weight{color:var(--accent, #4ade80); font-weight:700; white-space:nowrap;}
   .next-up b{color:var(--text);}
+  .next-up-strong{
+    display:flex; align-items:flex-start; gap:8px;
+    font-size:15px; color:var(--text); font-weight:600;
+    background:rgba(var(--glass-rgb),0.08); border:1px solid var(--border-bright);
+    border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:2px;
+  }
+  .next-up-strong svg{width:16px; height:16px; flex-shrink:0; margin-top:2px; color:var(--accent-rest-ex);}
+  .next-up-strong b{color:var(--accent-rest-ex);}
 
   .ring-wrap{position:relative; width:248px; height:248px; margin:6px 0;}
   .ring-wrap svg{width:100%; height:100%; transform:rotate(-90deg);}
@@ -1566,6 +1574,8 @@ function beep(freq,dur,vol){
   }catch(e){}
 }
 function playTick(){ beep(900,0.15,1.0); if(navigator.vibrate) navigator.vibrate(100); }
+// צפצוף בודד ב-30 שניות לפני סיום מנוחה (בין סטים או בין תרגילים) — התראה מוקדמת שהמנוחה עומדת להסתיים
+function playRestWarning(){ beep(520,0.22,0.35); if(navigator.vibrate) navigator.vibrate(80); }
 function playEndSound(){
   beep(660,0.16,0.3);
   setTimeout(()=>beep(990,0.28,0.3),170);
@@ -2123,9 +2133,9 @@ function getTip(muscles){
 function renderBodySVG(muscles){
   const active = new Set(muscles||[]);
   const dim = 'rgba(255,255,255,0.45)';
-  const isLight = currentTheme()==='light';
-  const hi  = isLight ? '#1a56db' : '#ff6b1a';
-  const hi2 = isLight ? 'rgba(26,86,219,0.7)' : 'rgba(255,107,26,0.7)';
+  // השריר הפעיל תמיד מסומן באדום (בשני מצבי התצוגה — הפאנל עצמו תמיד עם רקע כהה למחצה)
+  const hi  = '#ff2d2d';
+  const hi2 = 'rgba(255,45,45,0.7)';
 
   function mc(groups){ return groups.some(g=>active.has(g)) ? hi : dim; }
   function ms(groups){ return groups.some(g=>active.has(g)) ? hi2 : 'none'; }
@@ -2342,7 +2352,7 @@ function renderSession(){
         const w = currentWeightFor(nextEx);   // ביחידת התרגיל הבא
         if(w > 0) nextW = ` &middot; <span class="next-up-weight">${fmtWU(w, exUnit(nextEx))}</span>`;
       }
-      nextLine = `<div class="next-up">בהמשך: <b>${escapeHtml(nextEx.name||'תרגיל')}</b> &middot; ${nextEx.sets} סטים &middot; ${escapeHtml(exTargetLabel(nextEx))}${nextW}</div>`;
+      nextLine = `<div class="next-up next-up-strong">${icon('flag')}<span>התרגיל הבא: <b>${escapeHtml(nextEx.name||'תרגיל')}</b> &middot; ${nextEx.sets} סטים &middot; ${escapeHtml(exTargetLabel(nextEx))}${nextW}</span></div>`;
     }else if(!isExRest){
       nextLine = `<div class="next-up">התרגיל הנוכחי: <b>${escapeHtml(ex.name||'תרגיל')}</b> &middot; סט הבא ${s.setIndex} מתוך ${ex.sets} &middot; ${escapeHtml(exTargetLabel(ex))}</div>`;
     }
@@ -2689,6 +2699,7 @@ function syncCountdown(){
     (s.completeFn||endRest)();
     return;
   }
+  if(left===30 && (s.phase==='restSet' || s.phase==='restExercise')) playRestWarning();
   if(left<=5) playTick();
   updateRingDisplay();
 }
