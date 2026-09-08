@@ -555,6 +555,41 @@
   .ex-image-fallback svg{width:36px; height:36px;}
   .ex-image-fallback span{font-size:12px;}
   /* איור ביצוע וקטורי, במקום תמונה */
+  .ex-media-row--timed{max-height:170px; justify-content:center;}
+  .ex-media-row--timed .ex-image-wrap{max-height:170px; max-width:230px;}
+  .ex-media-row--timed .ex-body-svg{width:72px;}
+  /* בתצוגת "התרגיל הבא" יש תווית תחתונה — משאירים לה מקום */
+  .next-ex-preview .ex-illustration,
+  .next-ex-preview .ex-image-fallback{padding-bottom:26px;}
+  /* כפתור "?" ליד שם התרגיל */
+  .ex-info-btn{
+    appearance:none; cursor:pointer; vertical-align:middle;
+    width:26px; height:26px; border-radius:50%; margin-inline-start:8px; padding:0;
+    font-size:15px; font-weight:800; line-height:1; font-family:inherit;
+    color:var(--accent); background:rgba(var(--accent-rgb),0.12);
+    border:1px solid rgba(var(--accent-rgb),0.45);
+  }
+  .ex-info-btn:active{transform:scale(.92);}
+  .next-up .ex-info-btn{width:24px; height:24px; font-size:14px; flex:none;}
+  /* חלון הסבר התרגיל */
+  .modal-card-info .info-media{
+    width:100%; border-radius:var(--radius-sm); overflow:hidden;
+    background:rgba(var(--glass-rgb),0.06); border:1px solid var(--border-bright);
+    display:flex; align-items:center; justify-content:center; margin-bottom:12px;
+  }
+  .modal-card-info .info-media img{width:100%; height:auto; display:block;}
+  .modal-card-info .info-media-art{padding:10px 12px;}
+  .modal-card-info .info-media-art svg{width:100%; height:auto;}
+  .modal-card-info .info-text{
+    font-size:14.5px; line-height:1.7; color:var(--text); margin:0 0 12px;
+  }
+  .modal-card-info .info-muscles{
+    display:flex; align-items:center; gap:8px; font-size:13px;
+    color:var(--text-dim); margin-bottom:4px;
+  }
+  .modal-card-info .info-muscles svg{width:16px; height:16px; flex:none; color:var(--accent);}
+  .modal-card-info .btn-row{margin-top:14px;}
+  /* איור ביצוע וקטורי, במקום תמונה */
   .ex-illustration{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:6px; width:100%; height:100%; padding:10px 12px; min-height:0;
@@ -568,8 +603,9 @@
   /* הסבר ביצוע כתוב, במקום תמונה */
   .ex-image-fallback.howto{padding:14px 16px; gap:10px; color:var(--accent);}
   .ex-image-fallback.howto span{
-    font-size:13.5px; line-height:1.65; text-align:center;
+    font-size:12.5px; line-height:1.5; text-align:center;
     max-width:300px; color:var(--text); font-weight:500;
+    display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden;
   }
 
   /* Side-by-side: exercise photo + body muscle map */
@@ -1781,6 +1817,28 @@ function noImageInnerHtml(name){
 function noImageBlockHtml(name, extraClass){
   return `<div class="ex-image-wrap${extraClass ? ' '+extraClass : ''}">${noImageInnerHtml(name)}</div>`;
 }
+// כפתור "?" ליד שם התרגיל — פותח חלון עם איור/תמונה והסבר מלא.
+// חיוני כשמתאמנים לבד בלי חדר כושר ואין את מי לשאול.
+function exInfoBtn(exIndex){
+  return `<button class="ex-info-btn" type="button" data-action="show-ex-info" data-exi="${exIndex}" aria-label="איך מבצעים את התרגיל">?</button>`;
+}
+// תוכן חלון ההסבר: תמונה או איור, טקסט ביצוע, ושרירי המטרה
+function exInfoHtml(ex){
+  if(!ex) return '<p class="info-text">אין מידע על התרגיל.</p>';
+  const parts = [];
+  const art = exIllustration(ex.name);
+  if(ex._img){
+    parts.push(`<div class="info-media"><img src="${ex._img.a}" alt="" onerror="this.style.display='none'"></div>`);
+  }else if(art){
+    parts.push(`<div class="info-media info-media-art">${art}</div>`);
+  }
+  const t = exHowTo(ex.name);
+  if(t) parts.push(`<p class="info-text">${escapeHtml(t)}</p>`);
+  const mus = getMusclesHe(ex._muscles);
+  if(mus) parts.push(`<div class="info-muscles">${icon('target')}<span>${escapeHtml(mus)}</span></div>`);
+  if(!parts.length) parts.push('<p class="info-text">אין תמונה או הסבר זמינים לתרגיל הזה.</p>');
+  return parts.join('');
+}
 
 /* =========================================================
    Audio / vibration
@@ -1984,17 +2042,29 @@ function render(){
 function fitSessionScreen(){
   const screenEl = document.querySelector('.screen-session');
   if(!screenEl) return;
-  const media = screenEl.querySelector('.ex-media-row .ex-image-wrap') || screenEl.querySelector('.ring-wrap');
-  if(!media) return;
-  media.style.maxHeight = '';
-  // עד 4 ניסיונות כיווץ הדרגתי — למקרה שכיווץ אחד לא הספיק
-  for(let i=0;i<4;i++){
+  // מועמדים לכיווץ, לפי סדר עדיפות: קודם התמונה/האיור, ורק אם זה לא הספיק — הטבעת
+  const targets = [];
+  const media = screenEl.querySelector('.ex-media-row .ex-image-wrap');
+  const ring = screenEl.querySelector('.ring-wrap');
+  if(media) targets.push({el:media, min:64, square:false});
+  if(ring) targets.push({el:ring, min:150, square:true});
+  if(!targets.length) return;
+  targets.forEach(t=>{ t.el.style.maxHeight=''; if(t.square) t.el.style.maxWidth=''; });
+  // עד 6 מעברי כיווץ הדרגתי — למקרה שכיווץ אחד לא הספיק
+  for(let i=0;i<6;i++){
     const overflow = screenEl.scrollHeight - screenEl.clientHeight;
     if(overflow<=1) break;
-    const curH = media.getBoundingClientRect().height;
-    const newH = Math.max(56, Math.floor(curH - overflow - 4));
-    if(newH >= curH) break; // אין עוד מה לכווץ באלמנט הזה
-    media.style.maxHeight = newH + 'px';
+    let shrunk = false;
+    for(const t of targets){
+      const curH = t.el.getBoundingClientRect().height;
+      const newH = Math.max(t.min, Math.floor(curH - overflow - 4));
+      if(newH >= curH) continue;   // אין עוד מה לכווץ באלמנט הזה
+      t.el.style.maxHeight = newH + 'px';
+      if(t.square) t.el.style.maxWidth = newH + 'px';   // הטבעת חייבת להישאר עגולה
+      shrunk = true;
+      break;
+    }
+    if(!shrunk) break;
   }
 }
 
@@ -2555,7 +2625,7 @@ function renderSession(){
         <div class="ex-body-svg">${bodySvg}</div>
       </div>
       <div>
-        <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
+        <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}${exInfoBtn(s.exIndex)}</div>
         ${sideBadge}
         <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
       </div>
@@ -2576,11 +2646,22 @@ function renderSession(){
                        : ex.bilateral && s.sidePhase==='left'  ? 'סיימתי צד שמאל'
                        : 'סיימתי מוקדם';
 
+    const imgs2 = ex._img;
+    const aid2 = imgs2
+      ? `<div class="ex-image-wrap">
+          <img class="frame-a" src="${imgs2.a}" alt="" loading="lazy" onerror="this.style.display='none'">
+          <img class="frame-b" src="${imgs2.b}" alt="" loading="lazy" onerror="this.style.display='none'">
+        </div>`
+      : (hasVisualAid(ex.name) ? noImageBlockHtml(ex.name) : '');
+    const mediaRow2 = aid2
+      ? `<div class="ex-media-row ex-media-row--timed">${aid2}<div class="ex-body-svg">${bodySvg2}</div></div>`
+      : `<div class="ex-body-svg ex-body-svg--timed">${bodySvg2}</div>`;
+
     main = `
     <div class="session-main-content">
-      <div class="ex-body-svg ex-body-svg--timed">${bodySvg2}</div>
+      ${mediaRow2}
       <div>
-        <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
+        <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}${exInfoBtn(s.exIndex)}</div>
         ${sideBadge2}
         <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b></div>
       </div>
@@ -2613,7 +2694,7 @@ function renderSession(){
         const w = currentWeightFor(nextEx);   // ביחידת התרגיל הבא
         if(w > 0) nextW = ` &middot; <span class="next-up-weight">${fmtWU(w, exUnit(nextEx))}</span>`;
       }
-      nextLine = `<div class="next-up next-up-strong">${icon('flag')}<span>התרגיל הבא: <b>${escapeHtml(nextEx.name||'תרגיל')}</b> &middot; ${nextEx.sets} סטים &middot; ${escapeHtml(exTargetLabel(nextEx))}${nextW}</span></div>`;
+      nextLine = `<div class="next-up next-up-strong">${icon('flag')}<span>התרגיל הבא: <b>${escapeHtml(nextEx.name||'תרגיל')}</b> &middot; ${nextEx.sets} סטים &middot; ${escapeHtml(exTargetLabel(nextEx))}${nextW}</span>${exInfoBtn(s.exIndex+1)}</div>`;
     }else if(!isExRest){
       nextLine = `<div class="next-up">התרגיל הנוכחי: <b>${escapeHtml(ex.name||'תרגיל')}</b> &middot; סט הבא ${s.setIndex} מתוך ${ex.sets} &middot; ${escapeHtml(exTargetLabel(ex))}</div>`;
     }
@@ -2700,13 +2781,17 @@ function renderDone(){
 
 function renderModal(){
   const m = state.modal;
+  const bodyHtml = m.bodyHtml ? m.bodyHtml : `<p>${escapeHtml(m.body||'')}</p>`;
+  const buttons = m.infoOnly
+    ? `<button class="btn btn-primary btn-block" data-action="modal-cancel">סגירה</button>`
+    : `<button class="btn btn-ghost" data-action="modal-cancel">ביטול</button>
+        <button class="btn ${m.danger?'btn-danger':'btn-primary'}" data-action="modal-confirm">${escapeHtml(m.confirmLabel)}</button>`;
   return `<div class="modal-overlay" data-action="modal-overlay">
-    <div class="modal-card">
+    <div class="modal-card${m.infoOnly?' modal-card-info':''}">
       <h3>${escapeHtml(m.title)}</h3>
-      <p>${escapeHtml(m.body)}</p>
+      ${bodyHtml}
       <div class="btn-row">
-        <button class="btn btn-ghost" data-action="modal-cancel">ביטול</button>
-        <button class="btn ${m.danger?'btn-danger':'btn-primary'}" data-action="modal-confirm">${escapeHtml(m.confirmLabel)}</button>
+        ${buttons}
       </div>
     </div>
   </div>`;
@@ -3110,6 +3195,20 @@ document.body.addEventListener('click', async (e)=>{
       if(plan.exercises.length){
         state.previewPlan = plan;
         state.screen = 'preview';
+        render();
+      }
+      break;
+    }
+    case 'show-ex-info': {
+      const s = state.session;
+      const exi = parseInt(t.dataset.exi, 10);
+      const target = s && s.plan.exercises[exi];
+      if(target){
+        state.modal = {
+          title: target.name || 'תרגיל',
+          bodyHtml: exInfoHtml(target),
+          infoOnly: true
+        };
         render();
       }
       break;
