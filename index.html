@@ -554,6 +554,12 @@
   .ex-image-fallback{display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--text-dim);}
   .ex-image-fallback svg{width:36px; height:36px;}
   .ex-image-fallback span{font-size:12px;}
+  /* הסבר ביצוע כתוב, במקום תמונה */
+  .ex-image-fallback.howto{padding:14px 16px; gap:10px; color:var(--accent);}
+  .ex-image-fallback.howto span{
+    font-size:13.5px; line-height:1.65; text-align:center;
+    max-width:300px; color:var(--text); font-weight:500;
+  }
 
   /* Side-by-side: exercise photo + body muscle map */
   .ex-media-row{
@@ -1119,11 +1125,11 @@ const HE_PHRASES = {
   'בירד דוג':'bird dog',
   'הרמת רגל לצד':'fire hydrant',
   'פייר הידרנט':'fire hydrant',
-  'בעיטת חמור':'donkey kick',
+  'בעיטת חמור':'glute kickback',
   'דאנקי קיק':'donkey kick',
   'ישיבת קיר':'wall sit',
   'וול סיט':'wall sit',
-  'קפיצת מכרע':'jump lunge',
+  'קפיצת מכרע':'split jump',
   'מכרע קפיצה':'jump lunge',
   'פלאנק קופנהגן':'copenhagen plank',
   'פלאנק הפוך':'reverse plank',
@@ -1136,7 +1142,7 @@ const HE_PHRASES = {
   'הולו בודי':'hollow body hold',
   'ל סיט':'l-sit',
   'L סיט':'l-sit',
-  'קפיצה רחבה':'broad jump',
+  'קפיצה רחבה':'standing long jump',
   'ריצה צידית':'lateral shuffle',
   'שאפל':'lateral shuffle',
   'זחילת דוב':'bear crawl',
@@ -1159,7 +1165,23 @@ const HE_PHRASES = {
   'פלאנק צידי':'side bridge',
   'גשר ישבן':'butt lift bridge',
   'קראנץ צולב':'cross-body crunch',
-  'חתירה אוסטרלית':'inverted row'
+  'חתירה אוסטרלית':'inverted row',
+  // ---- תרגילים ללא שום ציוד (רק רצפה) ----
+  'שכיבות טריצפס':'push-ups close triceps position',
+  'שכיבות רחבות':'push-up wide',
+  'הרחבת גב ללא ספסל':'hyperextensions with no hyperextension bench',
+  'סקוואט צנחן':'sit squats',
+  'קפיצת סקוואט':'freehand jump squat',
+  'הרמת רגל אחורית':'rear leg raises',
+  'הרמת רגליים שוכב':'flat bench lying leg raise',
+  'בטן אופניים':'air bike',
+  'קוקון':'cocoons',
+  'ספיידר קרול':'spider crawl',
+  'נגיעה בבהונות':'toe touchers',
+  'סקיסור קיק':'scissor kick',
+  'לג פול אין':'leg pull-in',
+  'ג׳קנייף':'jackknife sit-up',
+  'הרמת ברך לחזה':'bent-knee hip raise'
 };
 
 // Single-word fallback dictionary
@@ -1587,66 +1609,70 @@ const CALI_TARGET_SEC = 30*60;   // יעד: חצי שעה
 const CALI_MAX_EX = 9;
 
 const CALI_POOL = {
+  // דחיפה — הכל על הרצפה, בלי ספסל ובלי מקבילים
   push: [
     {name:'שכיבות סמיכה'},
-    {name:'שכיבות יהלום'},
+    {name:'שכיבות רחבות'},
+    {name:'שכיבות טריצפס'},
     {name:'פייק פוש אפ'},
-    {name:'דיפס טריצפס'},
-    {name:'שכיבות קשת'},
-    {name:'שכיבות סמיכה צרות'}
+    {name:'שכיבות קשת'}
   ],
-  pull: [
-    {name:'מתח'},
-    {name:'מתח הפוך'},
-    {name:'חתירה אוסטרלית'},
-    {name:'מתח טייפרייטר'}
+  // גב וישבן — תחליף למשיכה, שלא דורש מוט מתח
+  back: [
+    {name:'סופרמן'},
+    {name:'הרחבת גב ללא ספסל'},
+    {name:'ציפור כלב'},
+    {name:'פלאנק הפוך', mode:'time', time:40},
+    {name:'גשר ישבן'},
+    {name:'הרמת אגן גוף'},
+    {name:'בעיטת חמור', bilateral:true}
   ],
   legs: [
     {name:'סקוואט משקל גוף'},
+    {name:'סקוואט צנחן'},
     {name:'מכרעים משקל גוף'},
     {name:'ריורס לאנג'},
     {name:'ספליט סקוואט', bilateral:true},
     {name:'קפיצת מכרע'},
+    {name:'קפיצת סקוואט'},
     {name:'ישיבת קיר', mode:'time', time:45},
-    {name:'גשר ישבן'},
-    {name:'הרמת אגן גוף'},
     {name:'הרמת עקבים גוף'},
-    {name:'נורדי קרל'},
-    {name:'קפיצה רחבה'}
+    {name:'קפיצה רחבה'},
+    {name:'הרמת רגל אחורית', bilateral:true}
   ],
   core: [
     {name:'פלאנק', mode:'time', time:45},
     {name:'פלאנק צידי', mode:'time', time:30, bilateral:true},
-    {name:'פלאנק הפוך', mode:'time', time:40},
-    {name:'הרמת רגליים תלוי'},
-    {name:'כפיפות בטן'},
-    {name:'רוסיאן טוויסט'},
     {name:'גוף חלול', mode:'time', time:40},
-    {name:'ל סיט', mode:'time', time:25},
-    {name:'דרגון פלאג'},
-    {name:'סופרמן'},
-    {name:'ציפור כלב'},
+    {name:'כפיפות בטן'},
     {name:'קראנץ צולב'},
-    {name:'פלאנק קופנהגן', mode:'time', time:25, bilateral:true}
+    {name:'רוסיאן טוויסט'},
+    {name:'בטן אופניים'},
+    {name:'הרמת רגליים שוכב'},
+    {name:'הרמת ברך לחזה'},
+    {name:'לג פול אין'},
+    {name:'סקיסור קיק'},
+    {name:'ג׳קנייף'},
+    {name:'קוקון'},
+    {name:'נגיעה בבהונות'},
+    {name:'ספיידר קרול'}
   ],
   cardio: [
     {name:'בורפי'},
     {name:'מאונטיין קליימברס', mode:'time', time:40},
     {name:'ברכיים גבוהות', mode:'time', time:40},
     {name:'ג׳אמפינג ג׳קס', mode:'time', time:45},
-    {name:'זחילת דוב', mode:'time', time:35},
-    {name:'בעיטות ישבן', mode:'time', time:40},
-    {name:'ריצה צידית', mode:'time', time:35}
+    {name:'בעיטות ישבן', mode:'time', time:40}
   ]
 };
 // תבניות סדר קבוצות. בכל הגרלה נבחרת תבנית אחת, כך שגם מבנה
 // האימון משתנה. בכל תבנית אין שתי קבוצות זהות ברצף.
 const CALI_TEMPLATES = [
-  ['push','legs','pull','core','push','legs','cardio','core','pull','legs'],
-  ['push','legs','core','pull','push','cardio','legs','core','pull','push'],
-  ['pull','legs','push','core','legs','push','cardio','core','legs','pull'],
-  ['push','core','legs','pull','cardio','push','legs','core','pull','legs'],
-  ['legs','push','core','pull','legs','push','cardio','core','legs','pull']
+  ['push','legs','core','back','push','legs','cardio','core','legs','push'],
+  ['legs','push','core','back','push','cardio','legs','core','push','legs'],
+  ['push','back','legs','core','push','legs','cardio','core','back','legs'],
+  ['push','core','legs','back','cardio','push','legs','core','legs','push'],
+  ['legs','push','back','core','legs','push','cardio','core','legs','back']
 ];
 
 // אומדן משך תרגיל (עבודה + מנוחות בין הסטים שלו), בשניות
@@ -1704,6 +1730,27 @@ function generateCalisthenicsPlan(){
     exercises,
     _random: true
   };
+}
+
+// הסבר ביצוע קצר לתרגילים שאין להם תמונה במסד — מוצג במקום
+// הודעת "אין תמונה מתאימה", גם בזמן התרגיל וגם במנוחה שלפניו.
+const EX_HOWTO = {
+  'פייק פוש אפ':'מעמדת שכיבות סמיכה, קרב את הרגליים לידיים והרם את הישבן ל-V הפוך. הורד את קודקוד הראש לרצפה בין כפות הידיים ודחוף חזרה למעלה.',
+  'שכיבות קשת':'שכיבות סמיכה בידיים רחבות מאוד. רד לצד אחד — המרפק הזה מתכופף והיד השנייה נשארת ישרה — ודחוף חזרה. לסירוגין ימין-שמאל.',
+  'ציפור כלב':'על ארבע, גב ישר ובטן אסופה. שלח יד אחת קדימה ואת הרגל הנגדית אחורה עד קו ישר עם הגוף, עצור שנייה וחזור. החלף צדדים.',
+  'ישיבת קיר':'הישען עם הגב לקיר וגלוש למטה עד שהברכיים בזווית 90 מעלות, כאילו אתה יושב על כיסא בלתי נראה. החזק בלי לנתק את הגב מהקיר.',
+  'גוף חלול':'שכב על הגב והצמד את הגב התחתון לרצפה. הרם קלות את הכתפיים ואת הרגליים הישרות, הידיים מתוחות מעל הראש. החזק את המתח בבטן.',
+  'בורפי':'מעמידה — רד לסקוואט, זרוק את הרגליים אחורה לשכיבת סמיכה, בצע שכיבה אחת, קפוץ עם הרגליים חזרה פנימה וסיים בקפיצה עם הידיים מעל הראש.',
+  'ג׳אמפינג ג׳קס':'קפוץ ופסק את הרגליים לצדדים תוך הרמת הידיים מעל הראש, ואז קפוץ חזרה לעמידה עם הידיים לצדי הגוף. שמור על קצב רציף.'
+};
+function exHowTo(name){ return EX_HOWTO[(name||'').trim()] || null; }
+// בלוק תחליף לתמונה: הסבר ביצוע אם יש, אחרת ההודעה הרגילה
+function noImageBlockHtml(name, extraClass){
+  const t = exHowTo(name);
+  const inner = t
+    ? `<div class="ex-image-fallback howto">${icon('target')}<span>${escapeHtml(t)}</span></div>`
+    : `<div class="ex-image-fallback">${icon('image')}<span>אין תמונה מתאימה</span></div>`;
+  return `<div class="ex-image-wrap${extraClass ? ' '+extraClass : ''}">${inner}</div>`;
 }
 
 /* =========================================================
@@ -1971,7 +2018,7 @@ function renderPreviewScreen(){
   </div>`;
 }
 
-// כרטיס "קליסטניקס אקראי" — תמיד מוצג בראש מסך הבית, גם כשאין תוכניות שמורות
+// כרטיס "קליסטניקס אקראי" — מוצג בסוף רשימת התוכניות במסך הבית
 function renderCaliCard(){
   return `
   <div class="plan-card cali-card">
@@ -1983,10 +2030,10 @@ function renderCaliCard(){
         <div style="flex:1">
           <h3 class="plan-card-title">קליסטניקס אקראי</h3>
           <div class="plan-card-meta">
-            <span>${icon('layers')} משקל גוף בלבד</span>
+            <span>${icon('layers')} בלי ציוד בכלל</span>
             <span>${icon('clock')} ~30 דק'</span>
           </div>
-          <div class="plan-last">${icon('target')} אימון מאוזן שנבנה מחדש בכל הגרלה</div>
+          <div class="plan-last">${icon('target')} רק משקל גוף ורצפה — אימון חדש בכל הגרלה</div>
         </div>
       </div>
       <div class="plan-card-actions">
@@ -2056,7 +2103,7 @@ function renderHome(){
       <div class="greeting">זמן להתאמן</div>
       <h1>האימון <span>שלי</span></h1>
     </div>
-    <div class="home-body">${renderCaliCard()}${body}</div>
+    <div class="home-body">${body}${renderCaliCard()}</div>
     <div class="home-fab">
       <button class="btn btn-primary btn-block" data-action="new-plan">${icon('plus')}<span>תוכנית חדשה</span></button>
       <button class="btn btn-ghost btn-icon-only" data-action="open-history" aria-label="היסטוריית אימונים">${icon('history')}</button>
@@ -2441,7 +2488,7 @@ function renderSession(){
           <img class="frame-a" src="${imgs.a}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=&quot;ex-image-fallback&quot;>${icon('image').replace(/"/g,'&quot;')}<span>אין תמונה מתאימה</span></div>'">
           <img class="frame-b" src="${imgs.b}" alt="" loading="lazy" onerror="this.style.display='none'; var a=this.previousElementSibling; if(a) a.classList.remove('frame-a');">
         </div>`
-      : `<div class="ex-image-wrap"><div class="ex-image-fallback">${icon('image')}<span>אין תמונה מתאימה</span></div></div>`;
+      : noImageBlockHtml(ex.name);
 
     const bodySvg = renderBodySVG(ex._muscles);
     const sideBadge = ex.bilateral && s.sidePhase
@@ -2547,7 +2594,15 @@ function renderSession(){
         <img class="frame-a" src="${nextImgs.a}" alt="" loading="lazy" onerror="this.style.display='none'">
         <img class="frame-b" src="${nextImgs.b}" alt="" loading="lazy" onerror="this.style.display='none'">
         <div class="next-ex-label">התרגיל הבא</div>
-      </div>` : '';
+      </div>` : (
+        // אין תמונה לתרגיל הבא — מציגים במקומה את הסבר הביצוע
+        isExRest && nextEx && exHowTo(nextEx.name)
+          ? `<div class="ex-image-wrap next-ex-preview">
+              <div class="ex-image-fallback howto">${icon('target')}<span>${escapeHtml(exHowTo(nextEx.name))}</span></div>
+              <div class="next-ex-label">התרגיל הבא</div>
+            </div>`
+          : ''
+      );
     // טיפ לתרגיל הבא — מוצג בזמן המנוחה שלפניו, לא בזמן ביצוע התרגיל עצמו
     const nextTip = isExRest && nextEx ? getTip(nextEx._muscles) : null;
     const nextTipBlock = nextTip ? `<div class="ex-info-block"><div class="ex-tip">${icon('zap')} ${escapeHtml(nextTip)}</div></div>` : '';
