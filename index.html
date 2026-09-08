@@ -555,12 +555,27 @@
   .ex-image-fallback svg{width:36px; height:36px;}
   .ex-image-fallback span{font-size:12px;}
   /* איור ביצוע וקטורי, במקום תמונה */
-  .ex-media-row--timed{max-height:170px; justify-content:center;}
-  .ex-media-row--timed .ex-image-wrap{max-height:170px; max-width:230px;}
-  .ex-media-row--timed .ex-body-svg{width:72px;}
   /* בתצוגת "התרגיל הבא" יש תווית תחתונה — משאירים לה מקום */
   .next-ex-preview .ex-illustration,
   .next-ex-preview .ex-image-fallback{padding-bottom:26px;}
+  /* כפתור "איך מבצעים" — ליד שם התרגיל ובמנוחה שלפניו */
+  .btn-howto{
+    appearance:none; cursor:pointer; font-family:inherit;
+    display:inline-flex; align-items:center; gap:7px;
+    margin-top:9px; padding:7px 14px 7px 10px; border-radius:999px;
+    font-size:13.5px; font-weight:700;
+    color:var(--accent); background:rgba(var(--accent-rgb),0.14);
+    border:1px solid rgba(var(--accent-rgb),0.5);
+  }
+  .btn-howto:active{transform:scale(.96);}
+  .btn-howto-q{
+    width:18px; height:18px; border-radius:50%; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; line-height:1;
+    background:var(--accent); color:var(--on-accent);
+  }
+  .next-up .btn-howto{margin-top:0; padding:5px 11px 5px 8px; font-size:12.5px; flex:none;}
+  .ex-image-wrap.tappable{cursor:pointer;}
   /* כפתור "?" ליד שם התרגיל */
   .ex-info-btn{
     appearance:none; cursor:pointer; vertical-align:middle;
@@ -592,14 +607,9 @@
   /* איור ביצוע וקטורי, במקום תמונה */
   .ex-illustration{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:6px; width:100%; height:100%; padding:10px 12px; min-height:0;
+    gap:6px; width:100%; height:100%; padding:8px 10px; min-height:0;
   }
-  .ex-illustration svg{width:100%; height:auto; max-height:100%; flex:1; min-height:0;}
-  .ex-illustration .howto-cap{
-    flex:none; font-size:11.5px; line-height:1.5; text-align:center;
-    color:var(--text-dim); max-width:320px;
-    display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
-  }
+  .ex-illustration svg{width:100%; height:100%; max-height:100%; min-height:0; object-fit:contain;}
   /* הסבר ביצוע כתוב, במקום תמונה */
   .ex-image-fallback.howto{padding:14px 16px; gap:10px; color:var(--accent);}
   .ex-image-fallback.howto span{
@@ -953,6 +963,15 @@
     font-size:12px; font-weight:600; color:#22d3c8; margin-top:6px;
   }
   .plan-last svg{width:12px; height:12px; flex-shrink:0;}
+
+  /* ===== חייב להישאר בסוף הגיליון =====
+     הכללים כאן דורסים את .ex-media-row .ex-image-wrap שמוגדר קודם
+     באותה ספציפיות. אם מזיזים אותם למעלה — הם נדרסים בשקט. */
+  .ex-image-wrap.ex-image-wrap--art{aspect-ratio:13/7;}          /* יחס שמתאים לציור, לא לתמונה */
+  .ex-media-row .ex-image-wrap.ex-image-wrap--art{aspect-ratio:13/7;}
+  .ex-media-row--timed{justify-content:center;}
+  .ex-media-row--timed .ex-image-wrap{max-height:190px;}
+  .ex-media-row--timed .ex-body-svg{width:72px;}
 </style>
 </head>
 <body>
@@ -1344,34 +1363,14 @@ function findExerciseEntry(name){
   return searchDBEntry(keywords);
 }
 
+// התמונה נגזרת תמיד מהתרגיל שזוהה ב-findExerciseEntry.
+// קריטי: בלי זה, תרגיל שאין לו תמונה היה "נופל" לחיפוש מילה-במילה
+// ומציג תמונה של תרגיל אחר לגמרי (למשל "בעיטות ישבן" הציג מתיחת ישבן).
+// עדיף בלי תמונה — ואז מוצג האיור או ההסבר — מאשר תמונה שגויה.
 function findExerciseImage(name){
-  if(!name) return null;
-  const norm = name.trim().toLowerCase();
-  if(!norm) return null;
-
-  // 1) exact phrase containment match
-  let bestPhraseEn=null, bestPhraseLen=0;
-  for(const he in HE_PHRASES){
-    const heLower = he.toLowerCase();
-    if(norm.includes(heLower) && heLower.length>bestPhraseLen){
-      bestPhraseEn = HE_PHRASES[he];
-      bestPhraseLen = heLower.length;
-    }
-  }
-  if(bestPhraseEn){
-    const hit = searchDB(bestPhraseEn.split(' '));
-    if(hit) return hit;
-  }
-
-  // 2) word-by-word fallback
-  const words = norm.split(/[\s,.\-־'"׳()]+/).filter(Boolean);
-  let keywords=[];
-  for(const w of words){
-    if(HE_WORDS[w]) keywords.push(...HE_WORDS[w]);
-    else if(/^[a-z]+$/.test(w)) keywords.push(w);
-  }
-  if(!keywords.length) return null;
-  return searchDB(keywords);
+  const e = findExerciseEntry(name);
+  if(!e || !e.i) return null;
+  return { a: IMG_BASE + e.i, b: e.i2 ? IMG_BASE + e.i2 : IMG_BASE + e.i };
 }
 
 /* =========================================================
@@ -1782,13 +1781,49 @@ function generateCalisthenicsPlan(){
 // הסבר ביצוע קצר לתרגילים שאין להם תמונה במסד — מוצג במקום
 // הודעת "אין תמונה מתאימה", גם בזמן התרגיל וגם במנוחה שלפניו.
 const EX_HOWTO = {
+  'שכיבות סמיכה':'ידיים ברוחב כתפיים מעט לפני החזה, גוף בקו ישר מהראש לעקבים. רד עד שהחזה כמעט נוגע ברצפה ודחוף חזרה. אל תשמוט את האגן.',
+  'שכיבות רחבות':'כמו שכיבות סמיכה אבל הידיים רחבות בהרבה מהכתפיים. רד לאט עד שהחזה קרוב לרצפה. עובד יותר על החזה ופחות על הטריצפס.',
+  'שכיבות טריצפס':'ידיים צרות מתחת לחזה, המרפקים נשארים צמודים לגוף לאורך כל התנועה ולא נפתחים החוצה. רד ודחוף.',
   'פייק פוש אפ':'מעמדת שכיבות סמיכה, קרב את הרגליים לידיים והרם את הישבן ל-V הפוך. הורד את קודקוד הראש לרצפה בין כפות הידיים ודחוף חזרה למעלה.',
   'שכיבות קשת':'שכיבות סמיכה בידיים רחבות מאוד. רד לצד אחד — המרפק הזה מתכופף והיד השנייה נשארת ישרה — ודחוף חזרה. לסירוגין ימין-שמאל.',
+  'סופרמן':'שכב על הבטן, ידיים מתוחות קדימה. הרם יחד ידיים, חזה ורגליים כמה סנטימטרים מהרצפה, החזק שנייה ורד לאט.',
+  'הרחבת גב ללא ספסל':'שכב על הבטן, ידיים לצדי הראש. הרם את החזה מהרצפה על ידי כיווץ שרירי הגב התחתון, בלי למתוח את הצוואר אחורה, ורד לאט.',
   'ציפור כלב':'על ארבע, גב ישר ובטן אסופה. שלח יד אחת קדימה ואת הרגל הנגדית אחורה עד קו ישר עם הגוף, עצור שנייה וחזור. החלף צדדים.',
+  'פלאנק הפוך':'שב על הרצפה, ידיים מאחורי הגב והאצבעות פונות לכיוון הרגליים. דחוף את האגן למעלה עד קו ישר מהכתפיים לעקבים והחזק.',
+  'גשר ישבן':'שכב על הגב, ברכיים כפופות וכפות הרגליים על הרצפה. דחוף דרך העקבים והרם את האגן עד קו ישר מהברכיים לכתפיים, כווץ את הישבן ורד.',
+  'הרמת אגן גוף':'כמו גשר ישבן אך עם עצירה ארוכה יותר למעלה. הרם את האגן עד קו ישר, כווץ חזק את הישבן שתי שניות, ורד בשליטה בלי לנוח על הרצפה.',
+  'בעיטת חמור':'על ארבע. בעט רגל אחת אחורה ולמעלה כשהברך כפופה בזווית ישרה וכף הרגל פונה לתקרה. אל תסובב את האגן. החלף צדדים.',
+  'סקוואט משקל גוף':'רגליים ברוחב כתפיים, ידיים קדימה לאיזון. רד אחורה כאילו אתה מתיישב על כיסא עד שהירכיים מקבילות לרצפה, הברכיים בכיוון האצבעות, וקום.',
+  'סקוואט צנחן':'סקוואט עמוק — רד עד למטה ככל שהניידות מאפשרת, עצור שנייה בתחתית וקום. שמור על הגב זקוף והעקבים על הרצפה.',
+  'מכרעים משקל גוף':'צעד גדול קדימה, רד עד ששתי הברכיים בזווית 90 מעלות והברך האחורית כמעט נוגעת ברצפה. קום וצעד עם הרגל השנייה. המשך בהליכה.',
+  'ריורס לאנג':'צעד גדול אחורה, רד עד שהברך האחורית כמעט נוגעת ברצפה. דחוף דרך העקב הקדמי בחזרה לעמידה. החלף רגליים.',
+  'ספליט סקוואט':'רגל אחת קדימה ואחת אחורה, במקום. רד ישר למטה עד שהברך האחורית קרובה לרצפה וקום. סיים את כל החזרות ברגל אחת ואז החלף.',
+  'קפיצת מכרע':'מעמדת מכרע, קפוץ למעלה והחלף רגליים באוויר, ונחת ישר בחזרה למכרע. נחיתה רכה עם ברך מעט כפופה.',
+  'קפיצת סקוואט':'רד לסקוואט וקפוץ למעלה בפיצוץ עם הידיים. נחת רך ישר בחזרה לתוך הסקוואט הבא בלי עצירה.',
   'ישיבת קיר':'הישען עם הגב לקיר וגלוש למטה עד שהברכיים בזווית 90 מעלות, כאילו אתה יושב על כיסא בלתי נראה. החזק בלי לנתק את הגב מהקיר.',
+  'הרמת עקבים גוף':'עמוד זקוף, עלה על קצות האצבעות עד הגובה המרבי, עצור שנייה למעלה ורד לאט. אפשר להיעזר בקיר לאיזון בלבד.',
+  'קפיצה רחבה':'מסקוואט קל, קפוץ קדימה למרחק תוך הנפת הידיים. נחת רך על שתי הרגליים עם ברכיים כפופות, התייצב, וחזור.',
+  'הרמת רגל אחורית':'עמוד זקוף. הרם רגל ישרה אחורה ככל האפשר בלי לקמר את הגב התחתון, עצור שנייה, ורד לאט. סיים צד אחד ואז החלף.',
+  'פלאנק':'נשען על אמות הידיים והבהונות, מרפקים מתחת לכתפיים. גוף בקו ישר מהראש לעקבים, בטן וישבן מכווצים. אל תרים או תשמוט את האגן.',
+  'פלאנק צידי':'שכב על הצד, נשען על אמה אחת עם המרפק מתחת לכתף. הרם את האגן עד קו ישר מהראש לרגליים והחזק. החלף צד.',
   'גוף חלול':'שכב על הגב והצמד את הגב התחתון לרצפה. הרם קלות את הכתפיים ואת הרגליים הישרות, הידיים מתוחות מעל הראש. החזק את המתח בבטן.',
+  'כפיפות בטן':'שכב על הגב, ברכיים כפופות וידיים ליד הרקות. גלגל את הכתפיים למעלה בעזרת שרירי הבטן בלבד, בלי למשוך את הצוואר, ורד לאט.',
+  'קראנץ צולב':'שכב על הגב, ידיים ליד הרקות. הרם את הכתף וכוון את המרפק לכיוון הברך הנגדית, חזור ולסירוגין לצד השני.',
+  'רוסיאן טוויסט':'שב על הרצפה, רגליים מורמות מעט וגב באלכסון אחורה. סובב את פלג הגוף העליון מצד לצד ונגע ברצפה ליד הירך.',
+  'בטן אופניים':'שכב על הגב. הבא מרפק לברך הנגדית תוך יישור הרגל השנייה, והחלף לסירוגין בתנועת דיווש רציפה ומבוקרת.',
+  'הרמת רגליים שוכב':'שכב על הגב, ידיים לצדי הגוף והגב התחתון צמוד לרצפה. הרם רגליים ישרות עד 90 מעלות ורד לאט בלי לגעת ברצפה.',
+  'הרמת ברך לחזה':'שכב על הגב, ברכיים כפופות. משוך את הברכיים לחזה תוך הרמת האגן מהרצפה, ורד לאט בשליטה.',
+  'לג פול אין':'שב על הרצפה, ידיים מאחורה לתמיכה והגוף באלכסון. משוך את הברכיים לחזה ואז ישר את הרגליים קדימה בלי לגעת ברצפה.',
+  'סקיסור קיק':'שכב על הגב, רגליים ישרות מעט מעל הרצפה. הצלב אותן לסירוגין מעלה-מטה בתנועת מספריים, והגב התחתון נשאר צמוד לרצפה.',
+  'ג׳קנייף':'שכב על הגב, ידיים מתוחות מעל הראש. הרם בו-זמנית את הידיים ואת הרגליים הישרות ונסה לגעת בבהונות, ורד לאט.',
+  'קוקון':'שכב על הגב, ידיים מעל הראש ורגליים ישרות. אסוף את הברכיים לחזה ואת הידיים קדימה עד תנוחת כדור, ופתח חזרה לאט.',
+  'נגיעה בבהונות':'שכב על הגב, רגליים ישרות למעלה. הרם את הכתפיים ונגע בבהונות בקצות האצבעות, ורד לאט.',
+  'ספיידר קרול':'מעמדת שכיבות סמיכה, הבא ברך אחת לכיוון המרפק מאותו צד, החזר, והחלף. הגוף נשאר נמוך ובקו ישר.',
   'בורפי':'מעמידה — רד לסקוואט, זרוק את הרגליים אחורה לשכיבת סמיכה, בצע שכיבה אחת, קפוץ עם הרגליים חזרה פנימה וסיים בקפיצה עם הידיים מעל הראש.',
-  'ג׳אמפינג ג׳קס':'קפוץ ופסק את הרגליים לצדדים תוך הרמת הידיים מעל הראש, ואז קפוץ חזרה לעמידה עם הידיים לצדי הגוף. שמור על קצב רציף.'
+  'מאונטיין קליימברס':'מעמדת שכיבות סמיכה, משוך ברכיים לחזה לסירוגין בקצב מהיר, כאילו אתה רץ במקום. האגן נשאר נמוך ויציב.',
+  'ברכיים גבוהות':'רוץ במקום והרם כל ברך עד גובה האגן, עם הנעת ידיים. גב זקוף ונחיתה על מרכז כף הרגל.',
+  'ג׳אמפינג ג׳קס':'קפוץ ופסק את הרגליים לצדדים תוך הרמת הידיים מעל הראש, ואז קפוץ חזרה לעמידה עם הידיים לצדי הגוף. שמור על קצב רציף.',
+  'בעיטות ישבן':'רוץ במקום וקפל כל עקב אחורה עד שהוא נוגע כמעט בישבן. הברכיים נשארות מתחת לגוף והקצב מהיר.'
 };
 // איורי ביצוע (SVG) לתרגילים שאין להם תמונה במסד. נטענים מיידית,
 // עובדים גם בלי רשת, ומתאימים את הצבעים לערכת הנושא הפעילה.
@@ -1799,7 +1834,12 @@ const EX_ILLUSTRATION = {
   'ישיבת קיר':'<svg viewBox="0 0 260 140" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="128" x2="248" y2="128" stroke="var(--text-dim)" stroke-width="2.5" opacity=".55"/><line x1="222" y1="10" x2="222" y2="128" stroke="var(--text-dim)" stroke-width="6" opacity=".55"/><line x1="212" y1="36" x2="212" y2="84" stroke="var(--accent)" stroke-width="7"/><line x1="212" y1="84" x2="126" y2="84" stroke="var(--accent)" stroke-width="7"/><line x1="126" y1="84" x2="126" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="212" y1="46" x2="146" y2="60" stroke="var(--accent)" stroke-width="7"/><circle cx="212" cy="22" r="13" fill="var(--accent)"/><path d="M126 68 L142 68 L142 84" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/></svg>',
   'גוף חלול':'<svg viewBox="0 0 260 140" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="128" x2="248" y2="128" stroke="var(--text-dim)" stroke-width="2.5" opacity=".55"/><line x1="24" y1="70" x2="100" y2="104" stroke="var(--accent)" stroke-width="7"/><line x1="100" y1="104" x2="158" y2="115" stroke="var(--accent)" stroke-width="7"/><line x1="158" y1="115" x2="234" y2="68" stroke="var(--accent)" stroke-width="7"/><circle cx="106" cy="94" r="12" fill="var(--accent)"/></svg>',
   'בורפי':'<svg viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="106" x2="312" y2="106" stroke="var(--text-dim)" stroke-width="2.5" opacity=".5"/><circle cx="32" cy="24" r="9" fill="var(--accent)"/><line x1="32" y1="34" x2="32" y2="72" stroke="var(--accent)" stroke-width="7"/><line x1="32" y1="72" x2="21" y2="104" stroke="var(--accent)" stroke-width="7"/><line x1="32" y1="72" x2="43" y2="104" stroke="var(--accent)" stroke-width="7"/><line x1="32" y1="42" x2="18" y2="66" stroke="var(--accent)" stroke-width="7"/><line x1="32" y1="42" x2="46" y2="66" stroke="var(--accent)" stroke-width="7"/><circle cx="106" cy="58" r="9" fill="var(--accent)"/><line x1="110" y1="68" x2="116" y2="86" stroke="var(--accent)" stroke-width="7"/><line x1="110" y1="68" x2="98" y2="104" stroke="var(--accent)" stroke-width="7"/><line x1="116" y1="86" x2="132" y2="104" stroke="var(--accent)" stroke-width="7"/><circle cx="176" cy="76" r="9" fill="var(--accent)"/><line x1="188" y1="80" x2="252" y2="102" stroke="var(--accent)" stroke-width="7"/><line x1="188" y1="80" x2="186" y2="104" stroke="var(--accent)" stroke-width="7"/><circle cx="292" cy="18" r="9" fill="var(--accent)"/><line x1="292" y1="28" x2="292" y2="62" stroke="var(--accent)" stroke-width="7"/><line x1="292" y1="62" x2="280" y2="92" stroke="var(--accent)" stroke-width="7"/><line x1="292" y1="62" x2="304" y2="92" stroke="var(--accent)" stroke-width="7"/><line x1="292" y1="34" x2="276" y2="8" stroke="var(--accent)" stroke-width="7"/><line x1="292" y1="34" x2="308" y2="8" stroke="var(--accent)" stroke-width="7"/></svg>',
-  'ג׳אמפינג ג׳קס':'<svg viewBox="0 0 260 140" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="128" x2="248" y2="128" stroke="var(--text-dim)" stroke-width="2.5" opacity=".55"/><circle cx="72" cy="30" r="12" fill="var(--accent)"/><line x1="72" y1="42" x2="72" y2="82" stroke="var(--accent)" stroke-width="7"/><line x1="72" y1="82" x2="66" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="72" y1="82" x2="78" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="72" y1="50" x2="58" y2="86" stroke="var(--accent)" stroke-width="7"/><line x1="72" y1="50" x2="86" y2="86" stroke="var(--accent)" stroke-width="7"/><circle cx="186" cy="30" r="12" fill="var(--accent)"/><line x1="186" y1="42" x2="186" y2="80" stroke="var(--accent)" stroke-width="7"/><line x1="186" y1="80" x2="152" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="186" y1="80" x2="220" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="186" y1="50" x2="150" y2="16" stroke="var(--accent)" stroke-width="7"/><line x1="186" y1="50" x2="222" y2="16" stroke="var(--accent)" stroke-width="7"/><path d="M112 70 L146 70" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/><path d="M136 62 L148 70 L136 78" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/></svg>'
+  'ג׳אמפינג ג׳קס':'<svg viewBox="0 0 260 140" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="128" x2="248" y2="128" stroke="var(--text-dim)" stroke-width="2.5" opacity=".55"/><circle cx="72" cy="30" r="12" fill="var(--accent)"/><line x1="72" y1="42" x2="72" y2="82" stroke="var(--accent)" stroke-width="7"/><line x1="72" y1="82" x2="66" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="72" y1="82" x2="78" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="72" y1="50" x2="58" y2="86" stroke="var(--accent)" stroke-width="7"/><line x1="72" y1="50" x2="86" y2="86" stroke="var(--accent)" stroke-width="7"/><circle cx="186" cy="30" r="12" fill="var(--accent)"/><line x1="186" y1="42" x2="186" y2="80" stroke="var(--accent)" stroke-width="7"/><line x1="186" y1="80" x2="152" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="186" y1="80" x2="220" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="186" y1="50" x2="150" y2="16" stroke="var(--accent)" stroke-width="7"/><line x1="186" y1="50" x2="222" y2="16" stroke="var(--accent)" stroke-width="7"/><path d="M112 70 L146 70" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/><path d="M136 62 L148 70 L136 78" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/></svg>',
+  'פלאנק הפוך':'<svg viewBox="0 0 260 140" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="128" x2="248" y2="128" stroke="var(--text-dim)" stroke-width="2.5" opacity=".55"/><line x1="56" y1="126" x2="72" y2="64" stroke="var(--accent)" stroke-width="7"/><line x1="72" y1="64" x2="216" y2="118" stroke="var(--accent)" stroke-width="7"/><circle cx="52" cy="52" r="13" fill="var(--accent)"/></svg>',
+  'הרמת אגן גוף':'<svg viewBox="0 0 260 140" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="128" x2="248" y2="128" stroke="var(--text-dim)" stroke-width="2.5" opacity=".55"/><line x1="46" y1="120" x2="132" y2="66" stroke="var(--accent)" stroke-width="7"/><line x1="132" y1="66" x2="196" y2="90" stroke="var(--accent)" stroke-width="7"/><line x1="196" y1="90" x2="188" y2="126" stroke="var(--accent)" stroke-width="7"/><circle cx="32" cy="114" r="12" fill="var(--accent)"/><path d="M132 44 L132 20" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/><path d="M124 28 L132 16 L140 28" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/></svg>',
+  'הרמת עקבים גוף':'<svg viewBox="0 0 260 140" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="128" x2="248" y2="128" stroke="var(--text-dim)" stroke-width="2.5" opacity=".55"/><circle cx="130" cy="30" r="13" fill="var(--accent)"/><line x1="130" y1="43" x2="130" y2="76" stroke="var(--accent)" stroke-width="7"/><line x1="130" y1="76" x2="120" y2="98" stroke="var(--accent)" stroke-width="7"/><line x1="130" y1="76" x2="142" y2="98" stroke="var(--accent)" stroke-width="7"/><line x1="120" y1="98" x2="100" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="142" y1="98" x2="162" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="130" y1="48" x2="110" y2="76" stroke="var(--accent)" stroke-width="7"/><line x1="130" y1="48" x2="150" y2="76" stroke="var(--accent)" stroke-width="7"/><path d="M120 100 L120 127" stroke="var(--text-dim)" stroke-width="2.5" stroke-dasharray="5 4" opacity=".85"/><path d="M142 100 L142 127" stroke="var(--text-dim)" stroke-width="2.5" stroke-dasharray="5 4" opacity=".85"/><path d="M180 112 L180 66" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/><path d="M172 76 L180 62 L188 76" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/></svg>',
+  'ברכיים גבוהות':'<svg viewBox="0 0 260 140" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="128" x2="248" y2="128" stroke="var(--text-dim)" stroke-width="2.5" opacity=".55"/><circle cx="118" cy="28" r="13" fill="var(--accent)"/><line x1="118" y1="41" x2="122" y2="80" stroke="var(--accent)" stroke-width="7"/><line x1="122" y1="80" x2="176" y2="74" stroke="var(--accent)" stroke-width="7"/><line x1="176" y1="74" x2="172" y2="116" stroke="var(--accent)" stroke-width="7"/><line x1="122" y1="80" x2="112" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="118" y1="50" x2="80" y2="66" stroke="var(--accent)" stroke-width="7"/><line x1="118" y1="50" x2="152" y2="34" stroke="var(--accent)" stroke-width="7"/><path d="M196 96 L196 52" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/><path d="M188 62 L196 48 L204 62" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/></svg>',
+  'בעיטות ישבן':'<svg viewBox="0 0 260 140" xmlns="http://www.w3.org/2000/svg" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="128" x2="248" y2="128" stroke="var(--text-dim)" stroke-width="2.5" opacity=".55"/><circle cx="120" cy="28" r="13" fill="var(--accent)"/><line x1="120" y1="41" x2="124" y2="80" stroke="var(--accent)" stroke-width="7"/><line x1="124" y1="82" x2="128" y2="126" stroke="var(--accent)" stroke-width="7"/><line x1="124" y1="82" x2="158" y2="106" stroke="var(--accent)" stroke-width="7"/><line x1="158" y1="106" x2="146" y2="72" stroke="var(--accent)" stroke-width="7"/><line x1="120" y1="50" x2="86" y2="70" stroke="var(--accent)" stroke-width="7"/><line x1="120" y1="50" x2="152" y2="36" stroke="var(--accent)" stroke-width="7"/><path d="M196 106 A34 34 0 0 0 176 74" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/><path d="M168 82 L174 70 L186 76" stroke="var(--text-dim)" stroke-width="3" opacity=".6"/></svg>'
 };
 function exHowTo(name){ return EX_HOWTO[(name||'').trim()] || null; }
 function exIllustration(name){ return EX_ILLUSTRATION[(name||'').trim()] || null; }
@@ -1808,19 +1848,26 @@ function hasVisualAid(name){ return !!(exIllustration(name) || exHowTo(name)); }
 function noImageInnerHtml(name){
   const art = exIllustration(name);
   const t = exHowTo(name);
-  if(art){
-    return `<div class="ex-illustration">${art}${t ? `<span class="howto-cap">${escapeHtml(t)}</span>` : ''}</div>`;
-  }
+  // כשיש איור הוא מקבל את כל שטח התיבה — ההסבר המלא נגיש בכפתור "איך מבצעים",
+  // וכיתוב קטן מתחת לאיור רק היה מכווץ את הציור עד להיעלמות במסכים צפופים.
+  if(art) return `<div class="ex-illustration">${art}</div>`;
   if(t) return `<div class="ex-image-fallback howto">${icon('target')}<span>${escapeHtml(t)}</span></div>`;
   return `<div class="ex-image-fallback">${icon('image')}<span>אין תמונה מתאימה</span></div>`;
 }
+function noImageWrapClass(name, extraClass){
+  // תיבת איור מקבלת יחס רוחב-גובה שמתאים לציור עצמו (רחב ונמוך),
+  // במקום 4:3 של תמונה — כך הציור גדול יותר ותופס פחות גובה מסך.
+  return 'ex-image-wrap' + (exIllustration(name) ? ' ex-image-wrap--art' : '') + (extraClass ? ' '+extraClass : '');
+}
 function noImageBlockHtml(name, extraClass){
-  return `<div class="ex-image-wrap${extraClass ? ' '+extraClass : ''}">${noImageInnerHtml(name)}</div>`;
+  return `<div class="${noImageWrapClass(name, extraClass)}">${noImageInnerHtml(name)}</div>`;
 }
 // כפתור "?" ליד שם התרגיל — פותח חלון עם איור/תמונה והסבר מלא.
 // חיוני כשמתאמנים לבד בלי חדר כושר ואין את מי לשאול.
 function exInfoBtn(exIndex){
-  return `<button class="ex-info-btn" type="button" data-action="show-ex-info" data-exi="${exIndex}" aria-label="איך מבצעים את התרגיל">?</button>`;
+  return `<button class="btn-howto" type="button" data-action="show-ex-info" data-exi="${exIndex}">
+    <span class="btn-howto-q">?</span><span>איך מבצעים</span>
+  </button>`;
 }
 // תוכן חלון ההסבר: תמונה או איור, טקסט ביצוע, ושרירי המטרה
 function exInfoHtml(ex){
@@ -2042,23 +2089,27 @@ function render(){
 function fitSessionScreen(){
   const screenEl = document.querySelector('.screen-session');
   if(!screenEl) return;
-  // מועמדים לכיווץ, לפי סדר עדיפות: קודם התמונה/האיור, ורק אם זה לא הספיק — הטבעת
+  // סדר הכיווץ: קודם הטבעת (יש לה הרבה שטח פנוי), ורק אחר כך האיור/התמונה —
+  // שהוא בדיוק מה שצריך להישאר קריא כשמתאמנים בלי מדריך.
   const targets = [];
   const media = screenEl.querySelector('.ex-media-row .ex-image-wrap');
   const ring = screenEl.querySelector('.ring-wrap');
-  if(media) targets.push({el:media, min:64, square:false});
-  if(ring) targets.push({el:ring, min:150, square:true});
+  if(ring) targets.push({el:ring, min:168, square:true});
+  if(media) targets.push({el:media, min:110, square:false});
   if(!targets.length) return;
   targets.forEach(t=>{ t.el.style.maxHeight=''; if(t.square) t.el.style.maxWidth=''; });
-  // עד 6 מעברי כיווץ הדרגתי — למקרה שכיווץ אחד לא הספיק
-  for(let i=0;i<6;i++){
+  screenEl.style.overflowY = '';
+  // כיווץ הדרגתי בצעדים קטנים. חשוב: כיווץ בבת אחת בגודל כל הגלישה
+  // היה מקטין את האיור הרבה מעבר לנדרש והופך אותו לבלתי קריא.
+  for(let i=0;i<16;i++){
     const overflow = screenEl.scrollHeight - screenEl.clientHeight;
     if(overflow<=1) break;
     let shrunk = false;
     for(const t of targets){
       const curH = t.el.getBoundingClientRect().height;
-      const newH = Math.max(t.min, Math.floor(curH - overflow - 4));
-      if(newH >= curH) continue;   // אין עוד מה לכווץ באלמנט הזה
+      const step = Math.min(overflow+2, Math.max(8, Math.round(curH*0.10)));
+      const newH = Math.max(t.min, Math.round(curH - step));
+      if(newH >= curH) continue;   // האלמנט הזה כבר במינימום
       t.el.style.maxHeight = newH + 'px';
       if(t.square) t.el.style.maxWidth = newH + 'px';   // הטבעת חייבת להישאר עגולה
       shrunk = true;
@@ -2066,6 +2117,9 @@ function fitSessionScreen(){
     }
     if(!shrunk) break;
   }
+  // רשת ביטחון: אם גם אחרי הכיווץ התוכן לא נכנס — עדיף לאפשר גלילה
+  // מאשר לחתוך כפתורים או את האיור.
+  if(screenEl.scrollHeight - screenEl.clientHeight > 1) screenEl.style.overflowY = 'auto';
 }
 
 function renderPreviewScreen(){
@@ -2583,7 +2637,7 @@ function renderSession(){
   if(s.phase==='active' && !isTimed){
     const imgs = ex._img;
     const imageBlock = imgs
-      ? `<div class="ex-image-wrap">
+      ? `<div class="ex-image-wrap tappable" data-action="show-ex-info" data-exi="${s.exIndex}">
           <img class="frame-a" src="${imgs.a}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=&quot;ex-image-fallback&quot;>${icon('image').replace(/"/g,'&quot;')}<span>אין תמונה מתאימה</span></div>'">
           <img class="frame-b" src="${imgs.b}" alt="" loading="lazy" onerror="this.style.display='none'; var a=this.previousElementSibling; if(a) a.classList.remove('frame-a');">
         </div>`
@@ -2625,9 +2679,10 @@ function renderSession(){
         <div class="ex-body-svg">${bodySvg}</div>
       </div>
       <div>
-        <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}${exInfoBtn(s.exIndex)}</div>
+        <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
         ${sideBadge}
         <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b> &middot; ${escapeHtml(exTargetLabel(ex))}</div>
+        ${exInfoBtn(s.exIndex)}
       </div>
       ${weightBlock}
     </div>
@@ -2648,7 +2703,7 @@ function renderSession(){
 
     const imgs2 = ex._img;
     const aid2 = imgs2
-      ? `<div class="ex-image-wrap">
+      ? `<div class="ex-image-wrap tappable" data-action="show-ex-info" data-exi="${s.exIndex}">
           <img class="frame-a" src="${imgs2.a}" alt="" loading="lazy" onerror="this.style.display='none'">
           <img class="frame-b" src="${imgs2.b}" alt="" loading="lazy" onerror="this.style.display='none'">
         </div>`
@@ -2661,9 +2716,10 @@ function renderSession(){
     <div class="session-main-content">
       ${mediaRow2}
       <div>
-        <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}${exInfoBtn(s.exIndex)}</div>
+        <div class="ex-title">${escapeHtml(ex.name||'תרגיל')}</div>
         ${sideBadge2}
         <div class="ex-subtitle">סט <b>${s.setIndex}</b> מתוך <b>${ex.sets}</b></div>
+        ${exInfoBtn(s.exIndex)}
       </div>
       <div class="ring-row">
         <button class="ring-adj-btn" data-action="adjust-rest" data-delta="15">+15</button>
@@ -2707,7 +2763,7 @@ function renderSession(){
       </div>` : (
         // אין תמונה לתרגיל הבא — מציגים במקומה את איור/הסבר הביצוע
         isExRest && nextEx && hasVisualAid(nextEx.name)
-          ? `<div class="ex-image-wrap next-ex-preview">
+          ? `<div class="${noImageWrapClass(nextEx.name,'next-ex-preview')}">
               ${noImageInnerHtml(nextEx.name)}
               <div class="next-ex-label">התרגיל הבא</div>
             </div>`
