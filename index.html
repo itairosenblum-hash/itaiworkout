@@ -329,6 +329,21 @@
   .plan-card-actions .icon-btn{background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.15); color:#f0ede8;}
   .plan-card-actions .icon-btn.danger{color:var(--danger);}
 
+  /* כרטיס "קליסטניקס אקראי" — מובחן ויזואלית משאר התוכניות */
+  .plan-card.cali-card{
+    min-height:0;
+    border:1px solid rgba(var(--accent-rgb),0.45);
+    box-shadow:0 8px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(var(--accent-rgb),0.08) inset;
+  }
+  .plan-card.cali-card .plan-card-overlay{
+    background:linear-gradient(135deg,
+      rgba(13,15,18,0.90) 0%,
+      rgba(13,15,18,0.62) 55%,
+      rgba(var(--accent-rgb),0.22) 100%
+    );
+  }
+  .plan-card.cali-card .plan-card-actions .btn-primary{flex:1;}
+
   .fab-row{margin-top:18px;}
   .footer-credit{
     text-align:center; font-size:11px; color:var(--text-dim); opacity:.5;
@@ -1136,7 +1151,15 @@ const HE_PHRASES = {
   'כפיפת ברך נורדי':'nordic curl',
   'דרגון פלאג':'dragon flag',
   'דגל דרקון':'dragon flag',
-  'מתח טייפרייטר':'typewriter pull-up'
+  'מתח טייפרייטר':'typewriter pull-up',
+  // ---- וריאציות משקל-גוף (קליסטניקס) ----
+  'סקוואט משקל גוף':'bodyweight squat',
+  'מכרעים משקל גוף':'bodyweight walking lunge',
+  'דיפס טריצפס':'dips triceps version',
+  'פלאנק צידי':'side bridge',
+  'גשר ישבן':'butt lift bridge',
+  'קראנץ צולב':'cross-body crunch',
+  'חתירה אוסטרלית':'inverted row'
 };
 
 // Single-word fallback dictionary
@@ -1549,6 +1572,141 @@ function exampleWorkout(){
 }
 
 /* =========================================================
+   אימון קליסטניקס אקראי
+   מאגר תרגילי משקל-גוף מחולק לקבוצות תנועה (דחיפה / משיכה /
+   רגליים / ליבה / קרדיו). ההגרלה עוברת על תבנית סדר קבועה
+   שמבטיחה איזון ומניעת שתי קבוצות זהות ברצף, ומוסיפה תרגילים
+   עד שהמשך המשוער מגיע לכ-30 דקות.
+   ========================================================= */
+const CALI_SETS = 3;
+const CALI_REPS = '12';
+const CALI_TIME = 40;            // שניות לתרגילי זמן
+const CALI_REST_SET = 45;        // מנוחה בין סטים
+const CALI_REST_EX = 60;         // מנוחה בין תרגילים
+const CALI_TARGET_SEC = 30*60;   // יעד: חצי שעה
+const CALI_MAX_EX = 9;
+
+const CALI_POOL = {
+  push: [
+    {name:'שכיבות סמיכה'},
+    {name:'שכיבות יהלום'},
+    {name:'פייק פוש אפ'},
+    {name:'דיפס טריצפס'},
+    {name:'שכיבות קשת'},
+    {name:'שכיבות סמיכה צרות'}
+  ],
+  pull: [
+    {name:'מתח'},
+    {name:'מתח הפוך'},
+    {name:'חתירה אוסטרלית'},
+    {name:'מתח טייפרייטר'}
+  ],
+  legs: [
+    {name:'סקוואט משקל גוף'},
+    {name:'מכרעים משקל גוף'},
+    {name:'ריורס לאנג'},
+    {name:'ספליט סקוואט', bilateral:true},
+    {name:'קפיצת מכרע'},
+    {name:'ישיבת קיר', mode:'time', time:45},
+    {name:'גשר ישבן'},
+    {name:'הרמת אגן גוף'},
+    {name:'הרמת עקבים גוף'},
+    {name:'נורדי קרל'},
+    {name:'קפיצה רחבה'}
+  ],
+  core: [
+    {name:'פלאנק', mode:'time', time:45},
+    {name:'פלאנק צידי', mode:'time', time:30, bilateral:true},
+    {name:'פלאנק הפוך', mode:'time', time:40},
+    {name:'הרמת רגליים תלוי'},
+    {name:'כפיפות בטן'},
+    {name:'רוסיאן טוויסט'},
+    {name:'גוף חלול', mode:'time', time:40},
+    {name:'ל סיט', mode:'time', time:25},
+    {name:'דרגון פלאג'},
+    {name:'סופרמן'},
+    {name:'ציפור כלב'},
+    {name:'קראנץ צולב'},
+    {name:'פלאנק קופנהגן', mode:'time', time:25, bilateral:true}
+  ],
+  cardio: [
+    {name:'בורפי'},
+    {name:'מאונטיין קליימברס', mode:'time', time:40},
+    {name:'ברכיים גבוהות', mode:'time', time:40},
+    {name:'ג׳אמפינג ג׳קס', mode:'time', time:45},
+    {name:'זחילת דוב', mode:'time', time:35},
+    {name:'בעיטות ישבן', mode:'time', time:40},
+    {name:'ריצה צידית', mode:'time', time:35}
+  ]
+};
+// תבניות סדר קבוצות. בכל הגרלה נבחרת תבנית אחת, כך שגם מבנה
+// האימון משתנה. בכל תבנית אין שתי קבוצות זהות ברצף.
+const CALI_TEMPLATES = [
+  ['push','legs','pull','core','push','legs','cardio','core','pull','legs'],
+  ['push','legs','core','pull','push','cardio','legs','core','pull','push'],
+  ['pull','legs','push','core','legs','push','cardio','core','legs','pull'],
+  ['push','core','legs','pull','cardio','push','legs','core','pull','legs'],
+  ['legs','push','core','pull','legs','push','cardio','core','legs','pull']
+];
+
+// אומדן משך תרגיל (עבודה + מנוחות בין הסטים שלו), בשניות
+function estimateExerciseSec(ex){
+  const sets = Number(ex.sets)||1;
+  const sides = ex.bilateral ? 2 : 1;
+  const work = ex.mode==='time'
+    ? (Number(ex.timeSeconds)||CALI_TIME)
+    : (parseInt(ex.reps,10)||12) * 3;   // ~3 שניות לחזרה
+  return sets*work*sides + Math.max(0,sets-1)*CALI_REST_SET;
+}
+function estimatePlanSec(plan){
+  const list = plan.exercises||[];
+  return list.reduce((sum,ex,i)=> sum + estimateExerciseSec(ex) + (i<list.length-1 ? CALI_REST_EX : 0), 0);
+}
+function estMinutesLabel(sec){
+  const m = Math.max(1, Math.round(sec/60));
+  return m < 60 ? m + " דק'" : Math.floor(m/60) + ':' + String(m%60).padStart(2,'0') + " ש'";
+}
+
+function generateCalisthenicsPlan(){
+  const used = new Set();
+  const exercises = [];
+  let total = 0;
+  const order = CALI_TEMPLATES[Math.floor(Math.random()*CALI_TEMPLATES.length)];
+  for(const cat of order){
+    if(exercises.length >= CALI_MAX_EX) break;
+    const pool = (CALI_POOL[cat]||[]).filter(o=>!used.has(o.name));
+    if(!pool.length) continue;
+    const pick = pool[Math.floor(Math.random()*pool.length)];
+    const ex = {
+      name: pick.name,
+      sets: CALI_SETS,
+      reps: CALI_REPS,
+      mode: pick.mode==='time' ? 'time' : 'reps',
+      timeSeconds: pick.time || CALI_TIME,
+      restSet:'',
+      restExercise:'',
+      bilateral: !!pick.bilateral,
+      unit:'kg'
+    };
+    // עוצרים כשהוספת עוד תרגיל תרחיק אותנו מיעד חצי השעה
+    const prospective = estimatePlanSec({exercises:[...exercises, ex]});
+    if(exercises.length >= 5 &&
+       Math.abs(prospective-CALI_TARGET_SEC) > Math.abs(total-CALI_TARGET_SEC)) break;
+    used.add(pick.name);
+    exercises.push(ex);
+    total = prospective;
+  }
+  return {
+    id: 'cali-'+uid(),
+    name: 'קליסטניקס אקראי',
+    defaultRestSet: CALI_REST_SET,
+    defaultRestExercise: CALI_REST_EX,
+    exercises,
+    _random: true
+  };
+}
+
+/* =========================================================
    Audio / vibration
    ========================================================= */
 let audioCtx=null;
@@ -1805,9 +1963,36 @@ function renderPreviewScreen(){
       <span><b>${p.exercises.length}</b> תרגילים</span>
       <span><b>${totalSets}</b> סטים</span>
       <span>מנוחה בין סטים: <b>${p.defaultRestSet}</b> שנ'</span>
+      ${p._random ? `<span>משך משוער: <b>${estMinutesLabel(estimatePlanSec(p))}</b></span>` : ''}
     </div>
     <div class="preview-list">${items}</div>
+    ${p._random ? `<button class="btn btn-ghost btn-block" data-action="reroll-cali" style="margin-bottom:10px">${icon('defer')}<span>הגרלה מחדש</span></button>` : ''}
     <button class="btn btn-primary btn-block btn-lg" data-action="begin-session">${icon('play')}<span>התחלת אימון</span></button>
+  </div>`;
+}
+
+// כרטיס "קליסטניקס אקראי" — תמיד מוצג בראש מסך הבית, גם כשאין תוכניות שמורות
+function renderCaliCard(){
+  return `
+  <div class="plan-card cali-card">
+    <div class="plan-card-bg" style="background-image:url('${getBgPhoto('calisthenics-random')}')"></div>
+    <div class="plan-card-overlay"></div>
+    <div class="plan-card-body">
+      <div class="plan-card-top">
+        <div class="plan-card-icon">${icon('zap')}</div>
+        <div style="flex:1">
+          <h3 class="plan-card-title">קליסטניקס אקראי</h3>
+          <div class="plan-card-meta">
+            <span>${icon('layers')} משקל גוף בלבד</span>
+            <span>${icon('clock')} ~30 דק'</span>
+          </div>
+          <div class="plan-last">${icon('target')} אימון מאוזן שנבנה מחדש בכל הגרלה</div>
+        </div>
+      </div>
+      <div class="plan-card-actions">
+        <button class="btn btn-primary" data-action="start-random-cali">${icon('zap')}<span>הגרלת אימון</span></button>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -1871,7 +2056,7 @@ function renderHome(){
       <div class="greeting">זמן להתאמן</div>
       <h1>האימון <span>שלי</span></h1>
     </div>
-    <div class="home-body">${body}</div>
+    <div class="home-body">${renderCaliCard()}${body}</div>
     <div class="home-fab">
       <button class="btn btn-primary btn-block" data-action="new-plan">${icon('plus')}<span>תוכנית חדשה</span></button>
       <button class="btn btn-ghost btn-icon-only" data-action="open-history" aria-label="היסטוריית אימונים">${icon('history')}</button>
@@ -2821,6 +3006,24 @@ document.body.addEventListener('click', async (e)=>{
     case 'start-plan': {
       const plan = state.plans.find(p=>p.id===id);
       if(plan && plan.exercises.length){
+        state.previewPlan = plan;
+        state.screen = 'preview';
+        render();
+      }
+      break;
+    }
+    case 'start-random-cali': {
+      const plan = generateCalisthenicsPlan();
+      if(plan.exercises.length){
+        state.previewPlan = plan;
+        state.screen = 'preview';
+        render();
+      }
+      break;
+    }
+    case 'reroll-cali': {
+      const plan = generateCalisthenicsPlan();
+      if(plan.exercises.length){
         state.previewPlan = plan;
         state.screen = 'preview';
         render();
