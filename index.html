@@ -1477,6 +1477,11 @@ const HISTORY_KEY = 'workoutAppHistory_v1';
 const WEIGHTS_KEY = 'workoutAppWeights_v1';
 const THEME_KEY = 'workoutAppTheme_v1'; // 'dark' | 'light'
 const MIGRATED_KEY_PREFIX = 'workoutAppFbMigrated_v1_';
+// למי שייכים הנתונים שבמטמון המקומי (uid). מונע מצב שבו משתמש שני
+// שמתחבר באותו מכשיר "יורש" את התוכניות וההיסטוריה של הקודם.
+const LOCAL_OWNER_KEY = 'workoutAppLocalOwner_v1';
+// הייבוא מה-Sheet הישן רלוונטי רק לבעל האפליקציה — לא לכל משתמש חדש
+const LEGACY_OWNER_EMAIL = 'itai.rosenblum@gmail.com';
 // כתובת Sheets הישנה — נשארת רק לייבוא חד-פעמי בהתחברות הראשונה
 const LEGACY_GS_URL = 'https://script.google.com/macros/s/AKfycby5VqHDNm6AA7dIPxnFJ5i7FKsHm41jbq0Qxo0Uzc-zYOU0WATyV-4vue_eH-wSBiVIkA/exec';
 
@@ -1550,6 +1555,12 @@ async function onAuthChanged(user){
   fbAuthResolved = true;
   updateAuthUI();
   if(fbUser){
+    const owner = localStorage.getItem(LOCAL_OWNER_KEY);
+    if(owner && owner !== fbUser.uid){
+      // הנתונים המקומיים שייכים לחשבון אחר — לא מייבאים אותם
+      clearLocalData();
+    }
+    try{ localStorage.setItem(LOCAL_OWNER_KEY, fbUser.uid); }catch(e){}
     const migKey = MIGRATED_KEY_PREFIX + fbUser.uid;
     if(localStorage.getItem(migKey) !== '1'){
       try{
@@ -1596,7 +1607,7 @@ async function migrateLocalToCloud(){
   catch(e){ cloudSnap = await fbPlansRef().get(); }
   const cloudPlans = cloudSnap.exists ? (cloudSnap.data().list || []) : null;
   let localPlans = loadLocalPlans();
-  if(!localPlans.length && !cloudPlans){
+  if(!localPlans.length && !cloudPlans && fbUser.email === LEGACY_OWNER_EMAIL){
     const legacy = await fetchLegacySheetsPlans();
     if(legacy) localPlans = legacy;
   }
@@ -1632,6 +1643,17 @@ async function migrateLocalToCloud(){
     });
     await batch.commit();
   }
+}
+
+// מחיקת המטמון המקומי של תוכניות/היסטוריה/משקלים (ערכת הנושא נשארת)
+function clearLocalData(){
+  try{
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    localStorage.removeItem(HISTORY_KEY);
+    localStorage.removeItem(WEIGHTS_KEY);
+    localStorage.removeItem(LOCAL_OWNER_KEY);
+  }catch(e){}
+  state.plans = [];
 }
 
 async function fetchLegacySheetsPlans(){
@@ -3405,10 +3427,13 @@ document.body.addEventListener('click', async (e)=>{
       if(!fbUser){ signIn(); break; }
       state.modal = {
         title:'התנתקות',
-        body:'להתנתק מהחשבון? הנתונים יישארו במכשיר הזה, אבל שינויים לא יסתנכרנו עד שתתחבר שוב.',
+        body:'להתנתק מהחשבון? הנתונים יוסרו מהמכשיר הזה ויחזרו כשתתחבר שוב — הם שמורים בענן.',
         confirmLabel:'התנתקות',
         danger:true,
-        onConfirm: async ()=>{ try{ await fbAuth.signOut(); }catch(e){} }
+        onConfirm: async ()=>{
+          try{ await fbAuth.signOut(); }catch(e){}
+          clearLocalData();   // שמשתמש אחר באותו מכשיר לא יראה את הנתונים
+        }
       };
       render();
       break;
