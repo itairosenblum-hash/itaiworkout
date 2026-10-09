@@ -1,4 +1,4 @@
-const CACHE_NAME = 'workout-app-v2';
+const CACHE_NAME = 'workout-app-v3';
 const APP_SHELL = [
   './',
   './index.html',
@@ -52,7 +52,9 @@ self.addEventListener('fetch', (event) => {
 
       // App-shell files: serve from cache immediately if present.
       // Everything else: try network first, fall back to cache.
-      const isShell = url.origin === location.origin;
+      // ה-manifest תמיד מהרשת, כדי ששינויי זהות/אייקון יגיעו מיד ולא יישארו תקועים במטמון
+      const isManifest = url.origin === location.origin && url.pathname.endsWith('/manifest.json');
+      const isShell = url.origin === location.origin && !isManifest;
       if (isShell && cached) return cached;
       return fetchPromise.then((res) => res || cached);
     })
